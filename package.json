@@ -1,0 +1,25 @@
+{
+    "name": "dragon-product-visibility",
+    "version": "1.0.0",
+    "description": "Restrict WooCommerce product visibility by specific customers or user roles",
+    "author": "Dragon Core",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://dcplugins.com/plugins/dragon-product-visibility",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/dragoncore/dragon-product-visibility.git"
+    },
+    "scripts": {
+        "build": "echo 'No build step required'",
+        "lint:js": "eslint assets/js/*.js",
+        "lint:css": "stylelint assets/css/*.css"
+    },
+    "devDependencies": {
+        "eslint": "^8.0.0",
+        "stylelint": "^15.0.0",
+        "stylelint-config-standard": "^34.0.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

@@ -1,0 +1,177 @@
+/**
+ * Dragon Product Visibility - Admin Styles
+ *
+ * @package DragonProductVisibility
+ */
+
+/* Tab styling */
+.visibility_restrictions_options a::before {
+    content: '\f530' !important;
+    font-family: 'Dashicons' !important;
+}
+
+/* Panel styling */
+#visibility_restrictions_data {
+    padding: 0;
+}
+
+#visibility_restrictions_data .options_group {
+    border-bottom: 1px solid #eee;
+    padding: 12px;
+}
+
+#visibility_restrictions_data .options_group:last-child {
+    border-bottom: none;
+}
+
+/* Section title */
+.dpv-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #23282d;
+    padding: 0 0 10px 0;
+    margin: 0 0 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+/* Description text */
+.dpv-description {
+    color: #666;
+    font-style: italic;
+    margin: 0 0 15px 0;
+    font-size: 13px;
+}
+
+/* Restriction mode field */
+.dpv-restriction-mode-field {
+    margin-bottom: 0 !important;
+}
+
+.dpv-restriction-mode-field label {
+    width: 150px !important;
+}
+
+/* Sections */
+.dpv-section {
+    padding: 15px 0;
+    border-top: 1px solid #f0f0f0;
+}
+
+.dpv-section:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.dpv-section h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.dpv-section > .description {
+    margin: 0 0 12px 0;
+    color: #666;
+    font-size: 12px;
+}
+
+/* Form fields */
+.dpv-section .form-field {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.dpv-section .form-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+/* Select2 adjustments */
+.dpv-section .select2-container {
+    width: 100% !important;
+    max-width: 500px;
+}
+
+.dpv-section .select2-container--default .select2-selection--multiple {
+    border-color: #8c8f94;
+    min-height: 32px;
+}
+
+.dpv-section .select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #2271b1;
+    border-color: #2271b1;
+    color: #fff;
+    padding: 2px 8px;
+    margin: 3px;
+}
+
+.dpv-section .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: #fff;
+    margin-right: 5px;
+}
+
+.dpv-section .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #fff;
+    background: transparent;
+}
+
+/* Info box */
+.dpv-info-box {
+    background: #f0f6fc;
+    border-left: 4px solid #2271b1;
+    padding: 12px 15px;
+    margin: 20px 0 0 0;
+}
+
+.dpv-info-box p {
+    margin: 0;
+    font-size: 12px;
+    color: #3c434a;
+}
+
+.dpv-info-box strong {
+    color: #1d2327;
+}
+
+/* Restrictions panel animation */
+.dpv-restrictions-panel {
+    overflow: hidden;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+    .dpv-section .select2-container {
+        max-width: 100%;
+    }
+
+    .dpv-restriction-mode-field label {
+        width: 100% !important;
+        margin-bottom: 5px;
+    }
+}
+
+/* Loading state */
+.dpv-loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.dpv-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #2271b1;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: dpv-spin 0.8s linear infinite;
+}
+
+@keyframes dpv-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

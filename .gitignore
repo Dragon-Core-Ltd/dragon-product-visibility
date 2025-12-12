@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build artifacts
+*.zip
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# wp-env
+.wp-env.json
+.wp-env.override.json
+
+# Testing
+phpunit.xml
+tests/
+coverage/
+
+# Dev config
+phpcs.xml.dist
+composer.lock
+package-lock.json
+
+# Debug
+debug.log
+*.log
