@@ -1,11 +1,11 @@
 === Dragon Product Visibility for WooCommerce ===
 Contributors: dragoncore
 Tags: woocommerce, product visibility, customer restrictions, role based access, private products
-Requires at least: 6.0
-Tested up to: 6.9
+Requires at least: 6.2
+Tested up to: 7.0
 Requires PHP: 8.0
 WC requires at least: 7.0
-WC tested up to: 9.4
+WC tested up to: 10.4
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html

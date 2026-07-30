@@ -15,8 +15,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 global $wpdb;
 
 // Drop the customer visibility table.
-$table_name = $wpdb->prefix . 'dpv_customer_visibility';
-$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'dpv_customer_visibility' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Table removal on uninstall.
 
 // Delete all plugin options.
 $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'dpv\_%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
