@@ -21,7 +21,7 @@
          */
         bindEvents: function() {
             // Toggle restrictions panel based on mode
-            $('#dpv_restriction_mode').on('change', this.toggleRestrictionsPanel);
+            $('#dragonproductvisibility_restriction_mode').on('change', this.toggleRestrictionsPanel);
         },
 
         /**
@@ -62,18 +62,18 @@
         initSelect2: function() {
             // Customer select with AJAX search
             $('.dpv-customer-select').select2({
-                placeholder: dpv_admin.i18n.search_customers,
+                placeholder: dragonproductvisibility_admin.i18n.search_customers,
                 allowClear: true,
                 minimumInputLength: 1,
                 ajax: {
-                    url: dpv_admin.ajax_url,
+                    url: dragonproductvisibility_admin.ajax_url,
                     dataType: 'json',
                     delay: 250,
                     data: function(params) {
                         return {
-                            action: 'dpv_search_customers',
+                            action: 'dragonproductvisibility_search_customers',
                             search_term: params.term,
-                            nonce: dpv_admin.nonce
+                            nonce: dragonproductvisibility_admin.nonce
                         };
                     },
                     processResults: function(data) {
@@ -85,17 +85,17 @@
                 },
                 language: {
                     noResults: function() {
-                        return dpv_admin.i18n.no_results;
+                        return dragonproductvisibility_admin.i18n.no_results;
                     },
                     searching: function() {
-                        return dpv_admin.i18n.searching;
+                        return dragonproductvisibility_admin.i18n.searching;
                     }
                 }
             });
 
             // Role select
             $('.dpv-role-select').select2({
-                placeholder: dpv_admin.i18n.select_roles,
+                placeholder: dragonproductvisibility_admin.i18n.select_roles,
                 allowClear: true
             });
         }

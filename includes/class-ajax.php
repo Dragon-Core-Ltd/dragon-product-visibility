@@ -39,13 +39,13 @@ class Ajax {
 	 */
 	private function __construct() {
 		// Customer search AJAX
-		add_action( 'wp_ajax_dpv_search_customers', array( $this, 'search_customers' ) );
+		add_action( 'wp_ajax_dragonproductvisibility_search_customers', array( $this, 'search_customers' ) );
 
 		// Save visibility rules AJAX
-		add_action( 'wp_ajax_dpv_save_visibility_rules', array( $this, 'save_visibility_rules' ) );
+		add_action( 'wp_ajax_dragonproductvisibility_save_visibility_rules', array( $this, 'save_visibility_rules' ) );
 
 		// Get visibility rules AJAX
-		add_action( 'wp_ajax_dpv_get_visibility_rules', array( $this, 'get_visibility_rules' ) );
+		add_action( 'wp_ajax_dragonproductvisibility_get_visibility_rules', array( $this, 'get_visibility_rules' ) );
 	}
 
 	/**
@@ -53,7 +53,7 @@ class Ajax {
 	 */
 	public function search_customers(): void {
 		// Verify nonce
-		if ( ! isset( $_REQUEST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['nonce'] ) ), 'dpv_admin_nonce' ) ) {
+		if ( ! isset( $_REQUEST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['nonce'] ) ), 'dragonproductvisibility_admin_nonce' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed', 'dragon-product-visibility' ) ) );
 			return;
 		}
@@ -114,7 +114,7 @@ class Ajax {
 	 */
 	public function save_visibility_rules(): void {
 		// Verify nonce
-		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'dpv_admin_nonce' ) ) {
+		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'dragonproductvisibility_admin_nonce' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed', 'dragon-product-visibility' ) ) );
 			return;
 		}
@@ -185,7 +185,7 @@ class Ajax {
 	 */
 	public function get_visibility_rules(): void {
 		// Verify nonce
-		if ( ! isset( $_REQUEST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['nonce'] ) ), 'dpv_admin_nonce' ) ) {
+		if ( ! isset( $_REQUEST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['nonce'] ) ), 'dragonproductvisibility_admin_nonce' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed', 'dragon-product-visibility' ) ) );
 			return;
 		}

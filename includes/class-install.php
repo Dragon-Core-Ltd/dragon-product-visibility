@@ -28,7 +28,7 @@ class Install {
 		wp_cache_flush();
 
 		// Set flag to show activation notice
-		set_transient( 'dpv_activated', true, 30 );
+		set_transient( 'dragonproductvisibility_activated', true, 30 );
 	}
 
 	/**
@@ -36,7 +36,7 @@ class Install {
 	 */
 	public static function deactivate(): void {
 		// Clear scheduled events if any
-		wp_clear_scheduled_hook( 'dpv_daily_cleanup' );
+		wp_clear_scheduled_hook( 'dragonproductvisibility_daily_cleanup' );
 	}
 
 	/**
@@ -65,7 +65,7 @@ class Install {
         // phpcs:enable
 
 		// Store the DB version
-		update_option( 'dpv_db_version', DPV_VERSION );
+		update_option( 'dragonproductvisibility_db_version', DRAGONPRODUCTVISIBILITY_VERSION );
 	}
 
 	/**
@@ -73,11 +73,11 @@ class Install {
 	 */
 	private static function create_options(): void {
 		$default_options = array(
-			'dpv_version'                       => DPV_VERSION,
-			'dpv_restriction_mode'              => 'whitelist',
-			'dpv_hide_restricted_completely'    => 'yes',
-			'dpv_show_message_on_direct_access' => 'yes',
-			'dpv_restricted_redirect'           => 'shop',
+			'dragonproductvisibility_version'                       => DRAGONPRODUCTVISIBILITY_VERSION,
+			'dragonproductvisibility_restriction_mode'              => 'whitelist',
+			'dragonproductvisibility_hide_restricted_completely'    => 'yes',
+			'dragonproductvisibility_show_message_on_direct_access' => 'yes',
+			'dragonproductvisibility_restricted_redirect'           => 'shop',
 		);
 
 		foreach ( $default_options as $key => $value ) {

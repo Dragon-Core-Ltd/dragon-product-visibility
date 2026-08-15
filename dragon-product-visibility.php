@@ -3,7 +3,7 @@
  * Plugin Name: Dragon Product Visibility for WooCommerce
  * Plugin URI: https://dragoncore.ltd/plugins/dragon-product-visibility
  * Description: Restrict WooCommerce product visibility by specific customers or user roles. Products can be made exclusive to certain users without complex membership plugins.
- * Version: 1.0.0
+ * Version: 1.0.2
  * Author: Dragon Core
  * Author URI: https://dragoncore.ltd
  * License: GPL v2 or later
@@ -25,20 +25,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- DPV_ is the plugin prefix.
-define( 'DPV_VERSION', '1.0.0' );
-define( 'DPV_PLUGIN_FILE', __FILE__ );
-define( 'DPV_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
-define( 'DPV_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'DPV_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- DRAGONPRODUCTVISIBILITY_ is the plugin prefix.
+define( 'DRAGONPRODUCTVISIBILITY_VERSION', '1.0.2' );
+define( 'DRAGONPRODUCTVISIBILITY_PLUGIN_FILE', __FILE__ );
+define( 'DRAGONPRODUCTVISIBILITY_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
+define( 'DRAGONPRODUCTVISIBILITY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'DRAGONPRODUCTVISIBILITY_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 // phpcs:enable
 
-require_once DPV_PLUGIN_PATH . 'includes/class-plugin.php';
-require_once DPV_PLUGIN_PATH . 'includes/class-install.php';
+require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-plugin.php';
+require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-install.php';
 
 // Activation/deactivation hooks (must be registered in the main plugin file body).
-register_activation_hook( DPV_PLUGIN_FILE, array( Install::class, 'activate' ) );
-register_deactivation_hook( DPV_PLUGIN_FILE, array( Install::class, 'deactivate' ) );
+register_activation_hook( DRAGONPRODUCTVISIBILITY_PLUGIN_FILE, array( Install::class, 'activate' ) );
+register_deactivation_hook( DRAGONPRODUCTVISIBILITY_PLUGIN_FILE, array( Install::class, 'deactivate' ) );
 
 /**
  * Main instance of Plugin

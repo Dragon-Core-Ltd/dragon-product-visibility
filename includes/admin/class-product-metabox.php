@@ -123,12 +123,12 @@ class Product_Metabox {
 					<?php esc_html_e( 'Control which customers can see and purchase this product. By default, products are visible to everyone.', 'dragon-product-visibility' ); ?>
 				</p>
 
-				<?php wp_nonce_field( 'dpv_save_visibility', 'dpv_visibility_nonce' ); ?>
+				<?php wp_nonce_field( 'dragonproductvisibility_save_visibility', 'dragonproductvisibility_visibility_nonce' ); ?>
 
 				<!-- Restriction Mode -->
 				<p class="form-field dpv-restriction-mode-field">
-					<label for="dpv_restriction_mode"><?php esc_html_e( 'Restriction Mode', 'dragon-product-visibility' ); ?></label>
-					<select id="dpv_restriction_mode" name="dpv_restriction_mode" class="select short">
+					<label for="dragonproductvisibility_restriction_mode"><?php esc_html_e( 'Restriction Mode', 'dragon-product-visibility' ); ?></label>
+					<select id="dragonproductvisibility_restriction_mode" name="dragonproductvisibility_restriction_mode" class="select short">
 						<option value="none" <?php selected( $restriction_mode, 'none' ); ?>>
 							<?php esc_html_e( 'No restrictions (visible to all)', 'dragon-product-visibility' ); ?>
 						</option>
@@ -155,11 +155,11 @@ class Product_Metabox {
 					</p>
 
 					<p class="form-field">
-						<label for="dpv_customers" class="dpv-customers-label">
+						<label for="dragonproductvisibility_customers" class="dpv-customers-label">
 							<span class="dpv-whitelist-text" <?php echo ( 'blacklist' === $restriction_mode ) ? 'style="display:none;"' : ''; ?>><?php esc_html_e( 'Allowed Customers', 'dragon-product-visibility' ); ?></span>
 							<span class="dpv-blacklist-text" <?php echo ( 'blacklist' !== $restriction_mode ) ? 'style="display:none;"' : ''; ?>><?php esc_html_e( 'Blocked Customers', 'dragon-product-visibility' ); ?></span>
 						</label>
-						<select id="dpv_customers" name="dpv_customers[]" class="dpv-customer-select" multiple="multiple" style="width: 100%;">
+						<select id="dragonproductvisibility_customers" name="dragonproductvisibility_customers[]" class="dpv-customer-select" multiple="multiple" style="width: 100%;">
 							<?php foreach ( $selected_customers as $customer ) : ?>
 								<option value="<?php echo esc_attr( $customer['id'] ); ?>" selected="selected">
 									<?php echo esc_html( $customer['text'] ); ?>
@@ -180,11 +180,11 @@ class Product_Metabox {
 					</p>
 
 					<p class="form-field">
-						<label for="dpv_roles" class="dpv-roles-label">
+						<label for="dragonproductvisibility_roles" class="dpv-roles-label">
 							<span class="dpv-whitelist-text" <?php echo ( 'blacklist' === $restriction_mode ) ? 'style="display:none;"' : ''; ?>><?php esc_html_e( 'Allowed Roles', 'dragon-product-visibility' ); ?></span>
 							<span class="dpv-blacklist-text" <?php echo ( 'blacklist' !== $restriction_mode ) ? 'style="display:none;"' : ''; ?>><?php esc_html_e( 'Blocked Roles', 'dragon-product-visibility' ); ?></span>
 						</label>
-						<select id="dpv_roles" name="dpv_roles[]" class="dpv-role-select" multiple="multiple" style="width: 100%;">
+						<select id="dragonproductvisibility_roles" name="dragonproductvisibility_roles[]" class="dpv-role-select" multiple="multiple" style="width: 100%;">
 							<?php foreach ( $all_roles as $role_key => $role_name ) : ?>
 								<option value="<?php echo esc_attr( $role_key ); ?>" <?php selected( in_array( $role_key, $visible_roles, true ) ); ?>>
 									<?php echo esc_html( $role_name ); ?>
@@ -259,7 +259,7 @@ class Product_Metabox {
 	 */
 	public function save_product_data( int $post_id ): void {
 		// Verify nonce
-		if ( ! isset( $_POST['dpv_visibility_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['dpv_visibility_nonce'] ) ), 'dpv_save_visibility' ) ) {
+		if ( ! isset( $_POST['dragonproductvisibility_visibility_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['dragonproductvisibility_visibility_nonce'] ) ), 'dragonproductvisibility_save_visibility' ) ) {
 			return;
 		}
 
@@ -269,15 +269,15 @@ class Product_Metabox {
 		}
 
 		// Save restriction mode
-		$restriction_mode = isset( $_POST['dpv_restriction_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['dpv_restriction_mode'] ) ) : 'none';
+		$restriction_mode = isset( $_POST['dragonproductvisibility_restriction_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['dragonproductvisibility_restriction_mode'] ) ) : 'none';
 		update_post_meta( $post_id, '_dpv_restriction_mode', $restriction_mode );
 
 		// Save roles
-		$roles = isset( $_POST['dpv_roles'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['dpv_roles'] ) ) : array();
+		$roles = isset( $_POST['dragonproductvisibility_roles'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['dragonproductvisibility_roles'] ) ) : array();
 		update_post_meta( $post_id, '_dpv_visible_roles', $roles );
 
 		// Save customers
-		$customers = isset( $_POST['dpv_customers'] ) ? array_map( 'absint', wp_unslash( $_POST['dpv_customers'] ) ) : array();
+		$customers = isset( $_POST['dragonproductvisibility_customers'] ) ? array_map( 'absint', wp_unslash( $_POST['dragonproductvisibility_customers'] ) ) : array();
 		$this->save_customer_visibility( $post_id, $customers );
 	}
 

@@ -40,8 +40,44 @@ final class Plugin {
 	 * Constructor
 	 */
 	private function __construct() {
+		self::migrate_legacy_prefix();
 		$this->includes();
 		$this->init_hooks();
+	}
+
+	/**
+	 * Move options off the pre-1.0.1 three-letter (dpv_) prefix.
+	 *
+	 * The option prefix was renamed to the namespace-derived
+	 * `dragonproductvisibility_` to satisfy the WordPress.org uniqueness rule.
+	 * Stored option values are carried across once, on the first load after the
+	 * update. Database tables and post/user meta keep their original keys (they
+	 * are matched by exact name and are not covered by the naming rule), so no
+	 * per-row product data is touched.
+	 */
+	private static function migrate_legacy_prefix(): void {
+		// db_version is a schema marker managed by activation, not user data.
+		delete_option( 'dpv_db_version' );
+
+		$options = array(
+			'version',
+			'restriction_mode',
+			'hide_restricted_completely',
+			'show_message_on_direct_access',
+			'restricted_redirect',
+		);
+
+		// Copy each legacy value onto the new name, then remove the legacy copy —
+		// per option, with no shared db_version guard, so the settings are carried
+		// even on a deactivate/reactivate update (where activation would otherwise
+		// re-stamp the new db_version before the copy could run).
+		foreach ( $options as $name ) {
+			$legacy = get_option( 'dpv_' . $name, null );
+			if ( null !== $legacy ) {
+				update_option( 'dragonproductvisibility_' . $name, $legacy );
+				delete_option( 'dpv_' . $name );
+			}
+		}
 	}
 
 	/**
@@ -49,14 +85,14 @@ final class Plugin {
 	 */
 	private function includes(): void {
 		// Core classes.
-		require_once DPV_PLUGIN_PATH . 'includes/class-install.php';
-		require_once DPV_PLUGIN_PATH . 'includes/class-visibility-filter.php';
-		require_once DPV_PLUGIN_PATH . 'includes/class-ajax.php';
+		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-install.php';
+		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-visibility-filter.php';
+		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-ajax.php';
 
 		// Admin classes.
 		if ( is_admin() ) {
-			require_once DPV_PLUGIN_PATH . 'includes/admin/class-admin.php';
-			require_once DPV_PLUGIN_PATH . 'includes/admin/class-product-metabox.php';
+			require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/admin/class-admin.php';
+			require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/admin/class-product-metabox.php';
 		}
 	}
 
@@ -109,12 +145,12 @@ final class Plugin {
 		}
 
 		// Handle dismissal via AJAX.
-		if ( isset( $_GET['dpv_dismiss_wc_notice'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ?? '' ) ), 'dpv_dismiss_notice' ) ) {
+		if ( isset( $_GET['dragonproductvisibility_dismiss_wc_notice'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ?? '' ) ), 'dragonproductvisibility_dismiss_notice' ) ) {
 			update_user_meta( get_current_user_id(), 'dpv_wc_notice_dismissed', 1 );
 			return;
 		}
 
-		$dismiss_url = wp_nonce_url( add_query_arg( 'dpv_dismiss_wc_notice', '1' ), 'dpv_dismiss_notice' );
+		$dismiss_url = wp_nonce_url( add_query_arg( 'dragonproductvisibility_dismiss_wc_notice', '1' ), 'dragonproductvisibility_dismiss_notice' );
 		?>
 		<div class="notice notice-warning is-dismissible" data-dpv-notice="wc-required">
 			<p>
@@ -130,7 +166,7 @@ final class Plugin {
 	 */
 	public function declare_hpos_compatibility(): void {
 		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
-			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', DPV_PLUGIN_FILE, true );
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', DRAGONPRODUCTVISIBILITY_PLUGIN_FILE, true );
 		}
 	}
 
@@ -138,13 +174,13 @@ final class Plugin {
 	 * Get plugin URL
 	 */
 	public function plugin_url(): string {
-		return DPV_PLUGIN_URL;
+		return DRAGONPRODUCTVISIBILITY_PLUGIN_URL;
 	}
 
 	/**
 	 * Get plugin path
 	 */
 	public function plugin_path(): string {
-		return DPV_PLUGIN_PATH;
+		return DRAGONPRODUCTVISIBILITY_PLUGIN_PATH;
 	}
 }

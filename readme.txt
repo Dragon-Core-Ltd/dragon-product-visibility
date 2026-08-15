@@ -6,7 +6,7 @@ Tested up to: 7.0
 Requires PHP: 8.0
 WC requires at least: 7.0
 WC tested up to: 10.4
-Stable tag: 1.0.0
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,12 @@ Yes, the plugin declares HPOS compatibility.
 3. Role-based restrictions
 
 == Changelog ==
+
+= 1.0.2 =
+* Fix: the admin customer-search script was not updated to the new prefix, breaking the visibility selector; settings also carry safely on reactivate.
+
+= 1.0.1 =
+* Renamed all option, hook and constant prefixes to the unique `dragonproductvisibility_` / `DRAGONPRODUCTVISIBILITY_` prefix. Existing settings are migrated automatically on update; product data (stored as post/user meta) is unaffected.
 
 = 1.0.0 =
 * Initial release

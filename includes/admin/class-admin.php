@@ -62,27 +62,27 @@ class Admin {
 		// Enqueue our admin script
 		wp_enqueue_script(
 			'dpv-admin',
-			DPV_PLUGIN_URL . 'assets/js/admin.js',
+			DRAGONPRODUCTVISIBILITY_PLUGIN_URL . 'assets/js/admin.js',
 			array( 'jquery', 'select2' ),
-			DPV_VERSION,
+			DRAGONPRODUCTVISIBILITY_VERSION,
 			true
 		);
 
 		// Enqueue our admin styles
 		wp_enqueue_style(
 			'dpv-admin',
-			DPV_PLUGIN_URL . 'assets/css/admin.css',
+			DRAGONPRODUCTVISIBILITY_PLUGIN_URL . 'assets/css/admin.css',
 			array(),
-			DPV_VERSION
+			DRAGONPRODUCTVISIBILITY_VERSION
 		);
 
 		// Localize script
 		wp_localize_script(
 			'dpv-admin',
-			'dpv_admin',
+			'dragonproductvisibility_admin',
 			array(
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
-				'nonce'    => wp_create_nonce( 'dpv_admin_nonce' ),
+				'nonce'    => wp_create_nonce( 'dragonproductvisibility_admin_nonce' ),
 				'i18n'     => array(
 					'search_customers' => __( 'Search for customers...', 'dragon-product-visibility' ),
 					'select_roles'     => __( 'Select roles...', 'dragon-product-visibility' ),
@@ -99,8 +99,8 @@ class Admin {
 	 * Show activation notice
 	 */
 	public function activation_notice(): void {
-		if ( get_transient( 'dpv_activated' ) ) {
-			delete_transient( 'dpv_activated' );
+		if ( get_transient( 'dragonproductvisibility_activated' ) ) {
+			delete_transient( 'dragonproductvisibility_activated' );
 			?>
 			<div class="notice notice-success is-dismissible">
 				<p>
