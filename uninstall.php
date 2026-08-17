@@ -12,6 +12,13 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+// Respect the site owner's data: nothing is removed unless they explicitly
+// opted in (the "Delete all data on uninstall" setting). Without the opt-in,
+// tables and options survive so a reinstall picks up exactly where it left off.
+if ( ! get_option( 'dpv_delete_data_on_uninstall' ) ) {
+	return;
+}
+
 global $wpdb;
 
 // Drop the customer visibility table.
