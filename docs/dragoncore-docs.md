@@ -11,4 +11,4 @@ Edit any product and find the **Visibility** box: choose specific customers and/
 - **Members-only ranges** for logged-in customers.
 
 ## Data & privacy
-Visibility rules are stored as product metadata in your database. **Uninstall keeps rules by default** (`wp option update dpv_delete_data_on_uninstall 1` to opt into deletion).
+Restriction mode and role rules are stored as product metadata; per-customer visibility lives in the plugin's own database table in your database. **Uninstall keeps rules by default** (`wp option update dpv_delete_data_on_uninstall 1` to opt into deletion).
