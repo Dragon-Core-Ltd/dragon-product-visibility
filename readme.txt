@@ -6,7 +6,7 @@ Tested up to: 7.0
 Requires PHP: 8.0
 WC requires at least: 7.0
 WC tested up to: 10.4
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,13 +94,10 @@ The plugin filters WooCommerce's standard product queries. REST API access depen
 
 Yes, the plugin declares HPOS compatibility.
 
-== Screenshots ==
-
-1. Visibility Restrictions tab in product edit screen
-2. Customer selection with search
-3. Role-based restrictions
-
 == Changelog ==
+
+= 1.0.4 =
+* Polish: the WooCommerce-required notice now only appears on the Plugins screen.
 
 = 1.0.3 =
 * Data safety: uninstalling the plugin no longer deletes its data unless you explicitly opt in first — a reinstall now picks up exactly where you left off.

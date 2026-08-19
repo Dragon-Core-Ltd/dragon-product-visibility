@@ -138,6 +138,13 @@ final class Plugin {
 			return;
 		}
 
+		// Only where someone can act on it: the plugins list. Without WooCommerce
+		// the plugin has no screens of its own, so nowhere else is relevant.
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'plugins' !== $screen->id ) {
+			return;
+		}
+
 		// Don't show if user dismissed the notice.
 		$dismissed = get_user_meta( get_current_user_id(), 'dpv_wc_notice_dismissed', true );
 		if ( $dismissed ) {
