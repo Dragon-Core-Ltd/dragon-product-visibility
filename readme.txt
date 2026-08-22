@@ -1,12 +1,12 @@
 === Dragon Product Visibility for WooCommerce ===
-Contributors: dragoncore
+Contributors: dragoncoreltd
 Tags: woocommerce, product visibility, customer restrictions, role based access, private products
 Requires at least: 6.2
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 8.0
 WC requires at least: 7.0
 WC tested up to: 10.4
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,10 @@ The plugin filters WooCommerce's standard product queries. REST API access depen
 Yes, the plugin declares HPOS compatibility.
 
 == Changelog ==
+
+= 1.0.5 =
+* Compatibility: tested up to WordPress 7.1.
+* Housekeeping: corrected the contributor name in the plugin readme.
 
 = 1.0.4 =
 * Polish: the WooCommerce-required notice now only appears on the Plugins screen.

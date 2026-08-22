@@ -3,7 +3,7 @@
  * Plugin Name: Dragon Product Visibility for WooCommerce
  * Plugin URI: https://dragoncore.ltd/plugins/dragon-product-visibility
  * Description: Restrict WooCommerce product visibility by specific customers or user roles. Products can be made exclusive to certain users without complex membership plugins.
- * Version: 1.0.4
+ * Version: 1.0.5
  * Author: Dragon Core
  * Author URI: https://dragoncore.ltd
  * License: GPL v2 or later
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- DRAGONPRODUCTVISIBILITY_ is the plugin prefix.
-define( 'DRAGONPRODUCTVISIBILITY_VERSION', '1.0.4' );
+define( 'DRAGONPRODUCTVISIBILITY_VERSION', '1.0.5' );
 define( 'DRAGONPRODUCTVISIBILITY_PLUGIN_FILE', __FILE__ );
 define( 'DRAGONPRODUCTVISIBILITY_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'DRAGONPRODUCTVISIBILITY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
