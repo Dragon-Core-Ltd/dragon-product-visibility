@@ -691,10 +691,12 @@ class Visibility_Filter {
 			return $this->restricted_products_cache;
 		}
 
-		// Prime the meta cache for the whole set in one query, so the per-product
-		// restriction-mode / visible-roles reads below hit the cache instead of
-		// issuing a query each.
+		// Prime the meta cache (per-product restriction-mode / visible-roles) AND
+		// the object-term cache (bulk rules call get_the_terms() per candidate) for
+		// the whole set in one query each, so the loop below hits the cache instead
+		// of issuing a query per product.
 		update_meta_cache( 'post', $candidates );
+		update_object_term_cache( $candidates, 'product' );
 
 		// Make the final per-product decision. This re-check is what lets an
 		// explicit per-product allow override a hiding category rule: a product in a

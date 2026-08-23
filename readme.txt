@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 8.0
 WC requires at least: 7.0
 WC tested up to: 10.4
-Stable tag: 1.0.7
+Stable tag: 1.0.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,9 @@ The plugin filters WooCommerce's standard product queries. REST API access depen
 Yes, the plugin declares HPOS compatibility.
 
 == Changelog ==
+
+= 1.0.8 =
+* Performance: category/tag visibility rules now prime WordPress's term cache for the whole candidate set, so a shop with a large hidden category no longer runs an extra term lookup per product on front-end and Store API requests.
 
 = 1.0.7 =
 * New: category & tag visibility rules. Under Products → Visibility Rules, hide a whole category or tag from chosen roles, or show it only to them, in a single step. Rules on a category automatically cover its sub-categories, and "show only to" also hides the products from logged-out visitors. Rules set on an individual product still take precedence.
