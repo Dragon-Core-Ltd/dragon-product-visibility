@@ -39,6 +39,13 @@ class Visibility_Filter {
 	private ?array $allowed_products_cache = null;
 
 	/**
+	 * Per-request cache of product IDs the current user is explicitly listed for.
+	 *
+	 * @var array|null
+	 */
+	private ?array $user_customer_products = null;
+
+	/**
 	 * Get instance
 	 */
 	public static function instance(): Visibility_Filter {
@@ -84,6 +91,16 @@ class Visibility_Filter {
 
 		// Filter search results
 		add_filter( 'posts_where', array( $this, 'filter_search_where' ), 10, 2 );
+
+		// Filter product listings that bypass woocommerce_product_query — the WC
+		// Store API (/wp-json/wc/store/v1/products) and the core product sitemap
+		// both run their own WP_Query, so hook pre_get_posts for product queries.
+		add_action( 'pre_get_posts', array( $this, 'filter_product_pre_get_posts' ) );
+
+		// Block direct REST fetches of a single restricted product (Store API
+		// products/{id} and products/{slug}), which resolve the product directly
+		// and never run a filtered query.
+		add_filter( 'rest_request_before_callbacks', array( $this, 'filter_rest_single_product' ), 10, 3 );
 
 		// Filter WooCommerce blocks
 		add_filter( 'woocommerce_blocks_product_grid_item_html', array( $this, 'filter_block_product' ), 10, 3 );
@@ -219,7 +236,12 @@ class Visibility_Filter {
 			return $where;
 		}
 
-		if ( ! isset( $query->query_vars['post_type'] ) || 'product' !== $query->query_vars['post_type'] ) {
+		// Cover generic searches, not just post_type=product. A plain ?s= search
+		// has no post_type (so it searches all types, products included), and a
+		// multi-type search passes an array. Only bail when products are
+		// definitely out of scope.
+		$types = array_filter( (array) $query->get( 'post_type' ) );
+		if ( ! empty( $types ) && ! in_array( 'any', $types, true ) && ! in_array( 'product', $types, true ) ) {
 			return $where;
 		}
 
@@ -233,6 +255,83 @@ class Visibility_Filter {
 		}
 
 		return $where;
+	}
+
+	/**
+	 * Exclude restricted products from any front-end product query.
+	 *
+	 * woocommerce_product_query only fires for the classic shop/archive query,
+	 * so listings that build their own WP_Query — the Store API products
+	 * collection and the core product sitemap — bypass it. This catches every
+	 * query that explicitly targets the product post type.
+	 *
+	 * @param \WP_Query $query Query object.
+	 */
+	public function filter_product_pre_get_posts( \WP_Query $query ): void {
+		if ( is_admin() ) {
+			return;
+		}
+
+		$types = array_filter( (array) $query->get( 'post_type' ) );
+		if ( ! in_array( 'product', $types, true ) ) {
+			return;
+		}
+
+		$restricted_ids = $this->get_restricted_product_ids();
+
+		if ( ! empty( $restricted_ids ) ) {
+			$query->set(
+				'post__not_in',
+				array_merge( (array) $query->get( 'post__not_in' ), $restricted_ids )
+			);
+		}
+	}
+
+	/**
+	 * Block direct REST fetches of a single restricted product.
+	 *
+	 * The WC Store API products/{id} and products/{slug} routes resolve the
+	 * product directly (no filtered query), so a restricted product would be
+	 * returned in full to a guest. Deny it with a 404 before the route callback
+	 * runs. List/search routes are handled by the query filters above.
+	 *
+	 * @param mixed            $response Result to send (WP_Error short-circuits).
+	 * @param array            $handler  Route handler (unused).
+	 * @param \WP_REST_Request $request  Current request.
+	 * @return mixed
+	 */
+	public function filter_rest_single_product( $response, $handler, $request ) {
+		if ( is_wp_error( $response ) || ! $request instanceof \WP_REST_Request ) {
+			return $response;
+		}
+
+		$route      = $request->get_route();
+		$product_id = 0;
+
+		// Store API sibling collection routes that also sit one segment under
+		// /products/. They must never be treated as a product slug, or a product
+		// whose slug collides with one of these names would 404 the sibling route.
+		$reserved_segments = array( 'attributes', 'categories', 'brands', 'tags', 'reviews', 'collection-data' );
+
+		if ( preg_match( '#^/wc/store/v\d+/products/(\d+)$#', $route, $matches ) ) {
+			// products/{id}
+			$product_id = (int) $matches[1];
+		} elseif ( preg_match( '#^/wc/store/v\d+/products/([^/]+)$#', $route, $matches )
+			&& ! in_array( strtolower( $matches[1] ), $reserved_segments, true ) ) {
+			// products/{slug} — a non-existent slug resolves to 0 and is left alone.
+			$product    = get_page_by_path( sanitize_title( rawurldecode( $matches[1] ) ), OBJECT, 'product' );
+			$product_id = $product ? (int) $product->ID : 0;
+		}
+
+		if ( $product_id > 0 && ! $this->user_can_view_product( $product_id ) ) {
+			return new \WP_Error(
+				'woocommerce_rest_product_invalid_id',
+				__( 'Sorry, you do not have access to view this product.', 'dragon-product-visibility' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		return $response;
 	}
 
 	/**
@@ -403,19 +502,43 @@ class Visibility_Filter {
 			return false;
 		}
 
+		return in_array( $product_id, $this->get_user_customer_products(), true );
+	}
+
+	/**
+	 * All product IDs the current user is explicitly listed for.
+	 *
+	 * Fetched once per request in a single query, so the restricted-product
+	 * sweep doesn't run a customer-list query per product (the N+1 that made
+	 * every catalog page cost one query per restricted product).
+	 *
+	 * @return int[]
+	 */
+	private function get_user_customer_products(): array {
+		if ( ! is_null( $this->user_customer_products ) ) {
+			return $this->user_customer_products;
+		}
+
+		$user_id = get_current_user_id();
+		if ( ! $user_id ) {
+			$this->user_customer_products = array();
+			return $this->user_customer_products;
+		}
+
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup; per-request caching handled by the class.
-		$exists = $wpdb->get_var(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table read; the whole set is fetched once and cached on the instance for the request.
+		$ids = $wpdb->get_col(
 			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i WHERE product_id = %d AND customer_id = %d',
+				'SELECT product_id FROM %i WHERE customer_id = %d',
 				$wpdb->prefix . 'dpv_customer_visibility',
-				$product_id,
 				$user_id
 			)
 		);
 
-		return $exists > 0;
+		$this->user_customer_products = array_map( 'intval', (array) $ids );
+
+		return $this->user_customer_products;
 	}
 
 	/**
@@ -473,6 +596,11 @@ class Visibility_Filter {
 			return $this->restricted_products_cache;
 		}
 
+		// Prime the meta cache for the whole set in one query, so the per-product
+		// restriction-mode / visible-roles reads below hit the cache instead of
+		// issuing a query each.
+		update_meta_cache( 'post', array_map( 'intval', $products_with_restrictions ) );
+
 		// Check each restricted product
 		foreach ( $products_with_restrictions as $product_id ) {
 			if ( ! $this->user_can_view_product( (int) $product_id ) ) {
@@ -491,5 +619,6 @@ class Visibility_Filter {
 	public function clear_cache(): void {
 		$this->restricted_products_cache = null;
 		$this->allowed_products_cache    = null;
+		$this->user_customer_products    = null;
 	}
 }
