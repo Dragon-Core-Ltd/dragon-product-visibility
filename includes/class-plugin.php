@@ -86,6 +86,7 @@ final class Plugin {
 	private function includes(): void {
 		// Core classes.
 		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-install.php';
+		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-bulk-rules.php';
 		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-visibility-filter.php';
 		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-ajax.php';
 
@@ -93,6 +94,7 @@ final class Plugin {
 		if ( is_admin() ) {
 			require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/admin/class-admin.php';
 			require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/admin/class-product-metabox.php';
+			require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/admin/class-bulk-rules-admin.php';
 		}
 	}
 
@@ -126,6 +128,7 @@ final class Plugin {
 		if ( is_admin() ) {
 			Admin::instance();
 			Product_Metabox::instance();
+			Bulk_Rules_Admin::instance();
 		}
 	}
 

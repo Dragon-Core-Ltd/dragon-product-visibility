@@ -46,6 +46,22 @@ class Visibility_Filter {
 	private ?array $user_customer_products = null;
 
 	/**
+	 * Per-request cache of product IDs the current user is denied by a bulk
+	 * (category/tag) rule.
+	 *
+	 * @var array|null
+	 */
+	private ?array $bulk_denied_products = null;
+
+	/**
+	 * True while resolving the bulk-rule product set, so the internal term query
+	 * does not recurse back through this class's own query filters.
+	 *
+	 * @var bool
+	 */
+	private bool $resolving = false;
+
+	/**
 	 * Get instance
 	 */
 	public static function instance(): Visibility_Filter {
@@ -232,7 +248,7 @@ class Visibility_Filter {
 	 * @param \WP_Query $query Query object
 	 */
 	public function filter_search_where( string $where, \WP_Query $query ): string {
-		if ( is_admin() || ! $query->is_search() ) {
+		if ( is_admin() || $this->resolving || ! $query->is_search() ) {
 			return $where;
 		}
 
@@ -268,7 +284,7 @@ class Visibility_Filter {
 	 * @param \WP_Query $query Query object.
 	 */
 	public function filter_product_pre_get_posts( \WP_Query $query ): void {
-		if ( is_admin() ) {
+		if ( is_admin() || $this->resolving ) {
 			return;
 		}
 
@@ -431,23 +447,87 @@ class Visibility_Filter {
 		// Get restriction mode for this product
 		$restriction_mode = get_post_meta( $product_id, '_dpv_restriction_mode', true );
 
-		// If no restriction mode set, product is visible to all
-		if ( ! $restriction_mode || 'none' === $restriction_mode ) {
+		// An explicit per-product rule takes precedence over any category/tag rule,
+		// so it decides on its own (a per-product allow can even override a hiding
+		// category rule).
+		if ( 'whitelist' === $restriction_mode ) {
+			return $this->user_is_in_whitelist( $product_id, get_current_user_id() );
+		}
+		if ( 'blacklist' === $restriction_mode ) {
+			return ! $this->user_is_in_blacklist( $product_id, get_current_user_id() );
+		}
+
+		// No per-product rule: fall through to any bulk category/tag rules.
+		return $this->product_allowed_by_bulk_rules( $product_id );
+	}
+
+	/**
+	 * Whether the current user may see a product under the bulk category/tag rules.
+	 *
+	 * The product is hidden if it falls under any bulk rule (its own term or, for
+	 * categories, a descendant of the rule's term) that denies the user's roles —
+	 * most-restrictive wins. Only called for products with no per-product rule.
+	 *
+	 * @param int $product_id Product ID.
+	 * @return bool
+	 */
+	private function product_allowed_by_bulk_rules( int $product_id ): bool {
+		$rules = Bulk_Rules::all();
+		if ( empty( $rules ) ) {
 			return true;
 		}
 
-		$current_user_id = get_current_user_id();
+		$user_roles = $this->current_user_roles();
 
-		// Check if user has access based on restriction mode
-		if ( 'whitelist' === $restriction_mode ) {
-			// Whitelist mode: only specified users/roles can see
-			return $this->user_is_in_whitelist( $product_id, $current_user_id );
-		} elseif ( 'blacklist' === $restriction_mode ) {
-			// Blacklist mode: specified users/roles cannot see
-			return ! $this->user_is_in_blacklist( $product_id, $current_user_id );
+		foreach ( $rules as $rule ) {
+			if ( ! Bulk_Rules::rule_denies_roles( $rule, $user_roles ) ) {
+				continue;
+			}
+			if ( $this->product_in_rule_term( $product_id, $rule ) ) {
+				return false;
+			}
 		}
 
 		return true;
+	}
+
+	/**
+	 * Whether a product belongs to a bulk rule's term — directly, or (for the
+	 * hierarchical product_cat taxonomy) as a descendant of it, so a parent-
+	 * category rule also covers products in its child categories.
+	 *
+	 * @param int   $product_id Product ID.
+	 * @param array $rule       Bulk rule.
+	 * @return bool
+	 */
+	private function product_in_rule_term( int $product_id, array $rule ): bool {
+		$terms = get_the_terms( $product_id, $rule['taxonomy'] );
+		if ( empty( $terms ) || is_wp_error( $terms ) ) {
+			return false;
+		}
+
+		$term_ids = array();
+		foreach ( $terms as $term ) {
+			$term_ids[] = (int) $term->term_id;
+			if ( 'product_cat' === $rule['taxonomy'] ) {
+				foreach ( get_ancestors( (int) $term->term_id, 'product_cat', 'taxonomy' ) as $ancestor ) {
+					$term_ids[] = (int) $ancestor;
+				}
+			}
+		}
+
+		return in_array( (int) $rule['term_id'], $term_ids, true );
+	}
+
+	/**
+	 * Roles held by the current user (empty for guests).
+	 *
+	 * @return string[]
+	 */
+	private function current_user_roles(): array {
+		$user = wp_get_current_user();
+
+		return ( $user && ! empty( $user->roles ) ) ? array_map( 'strval', (array) $user->roles ) : array();
 	}
 
 	/**
@@ -578,12 +658,17 @@ class Visibility_Filter {
 			return $this->restricted_products_cache;
 		}
 
+		// Guard against re-entrancy: resolving bulk rules runs an internal product
+		// query, which must not recurse back into this method.
+		if ( $this->resolving ) {
+			return array();
+		}
+
 		global $wpdb;
 
-		$current_user_id = get_current_user_id();
-		$restricted_ids  = array();
+		$restricted_ids = array();
 
-		// Get all products with restrictions
+		// Products carrying an explicit per-product rule.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Performance query, caching handled by class.
 		$products_with_restrictions = $wpdb->get_col(
 			"SELECT DISTINCT post_id FROM {$wpdb->postmeta}
@@ -591,7 +676,17 @@ class Visibility_Filter {
              AND meta_value IN ('whitelist', 'blacklist')"
 		);
 
-		if ( empty( $products_with_restrictions ) ) {
+		// Products the current user is denied by a bulk category/tag rule. Unioning
+		// these into the candidate set (rather than only the per-product ones) is
+		// what keeps a category rule enforced on the listing/search/sitemap paths.
+		$candidates = array_unique(
+			array_merge(
+				array_map( 'intval', (array) $products_with_restrictions ),
+				$this->get_bulk_denied_product_ids()
+			)
+		);
+
+		if ( empty( $candidates ) ) {
 			$this->restricted_products_cache = array();
 			return $this->restricted_products_cache;
 		}
@@ -599,10 +694,12 @@ class Visibility_Filter {
 		// Prime the meta cache for the whole set in one query, so the per-product
 		// restriction-mode / visible-roles reads below hit the cache instead of
 		// issuing a query each.
-		update_meta_cache( 'post', array_map( 'intval', $products_with_restrictions ) );
+		update_meta_cache( 'post', $candidates );
 
-		// Check each restricted product
-		foreach ( $products_with_restrictions as $product_id ) {
+		// Make the final per-product decision. This re-check is what lets an
+		// explicit per-product allow override a hiding category rule: a product in a
+		// denied category but individually whitelisted for the user resolves visible.
+		foreach ( $candidates as $product_id ) {
 			if ( ! $this->user_can_view_product( (int) $product_id ) ) {
 				$restricted_ids[] = (int) $product_id;
 			}
@@ -614,11 +711,80 @@ class Visibility_Filter {
 	}
 
 	/**
+	 * Product IDs the current user is denied by a bulk (category/tag) rule.
+	 *
+	 * Only rules that actually deny the user's roles are expanded to products, and
+	 * the expansion runs one product query with all denying terms OR'd together
+	 * (categories include their descendants). Cached per request.
+	 *
+	 * @return int[]
+	 */
+	private function get_bulk_denied_product_ids(): array {
+		if ( ! is_null( $this->bulk_denied_products ) ) {
+			return $this->bulk_denied_products;
+		}
+
+		$rules = Bulk_Rules::all();
+		if ( empty( $rules ) ) {
+			$this->bulk_denied_products = array();
+			return $this->bulk_denied_products;
+		}
+
+		$user_roles = $this->current_user_roles();
+		$tax_query  = array( 'relation' => 'OR' );
+
+		foreach ( $rules as $rule ) {
+			if ( ! Bulk_Rules::rule_denies_roles( $rule, $user_roles ) ) {
+				continue;
+			}
+			$tax_query[] = array(
+				'taxonomy'         => $rule['taxonomy'],
+				'field'            => 'term_id',
+				'terms'            => (int) $rule['term_id'],
+				'include_children' => ( 'product_cat' === $rule['taxonomy'] ),
+			);
+		}
+
+		// No denying rule applies to this user.
+		if ( count( $tax_query ) < 2 ) {
+			$this->bulk_denied_products = array();
+			return $this->bulk_denied_products;
+		}
+
+		// try/finally so a throw inside the internal query (e.g. a third-party
+		// filter) can never leave $resolving stuck true — which would make every
+		// later get_restricted_product_ids() call in this request return empty and
+		// stop filtering restricted products.
+		$this->resolving = true;
+		try {
+			$ids = get_posts(
+				array(
+					'post_type'        => 'product',
+					'post_status'      => 'publish',
+					'fields'           => 'ids',
+					'posts_per_page'   => -1,
+					'no_found_rows'    => true,
+					'suppress_filters' => true,
+					// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Enforcing category/tag visibility inherently requires a taxonomy query; result is cached per request.
+					'tax_query'        => $tax_query,
+				)
+			);
+		} finally {
+			$this->resolving = false;
+		}
+
+		$this->bulk_denied_products = array_map( 'intval', (array) $ids );
+
+		return $this->bulk_denied_products;
+	}
+
+	/**
 	 * Clear the cache
 	 */
 	public function clear_cache(): void {
 		$this->restricted_products_cache = null;
 		$this->allowed_products_cache    = null;
 		$this->user_customer_products    = null;
+		$this->bulk_denied_products      = null;
 	}
 }
