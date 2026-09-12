@@ -112,7 +112,9 @@ class Bulk_Rules_Admin {
 			'mode'     => $mode,
 			'roles'    => $roles,
 		);
-		Bulk_Rules::save( $rules );
+		if ( ! Bulk_Rules::save( $rules ) ) {
+			$this->redirect( array( 'dpv_error' => 'save' ) );
+		}
 
 		$this->redirect( array( 'dpv_msg' => 'added' ) );
 	}
@@ -127,8 +129,8 @@ class Bulk_Rules_Admin {
 		check_admin_referer( 'dragonproductvisibility_delete_bulk_rule' );
 
 		$id = isset( $_POST['dpv_rule_id'] ) ? sanitize_key( wp_unslash( $_POST['dpv_rule_id'] ) ) : '';
-		if ( '' !== $id ) {
-			Bulk_Rules::delete( $id );
+		if ( '' === $id || ! Bulk_Rules::delete( $id ) ) {
+			$this->redirect( array( 'dpv_error' => 'delete' ) );
 		}
 
 		$this->redirect( array( 'dpv_msg' => 'deleted' ) );

@@ -87,6 +87,7 @@ final class Plugin {
 		// Core classes.
 		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-install.php';
 		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-bulk-rules.php';
+		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-customer-visibility.php';
 		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-visibility-filter.php';
 		require_once DRAGONPRODUCTVISIBILITY_PLUGIN_PATH . 'includes/class-ajax.php';
 
@@ -126,6 +127,7 @@ final class Plugin {
 
 		// Initialize admin.
 		if ( is_admin() ) {
+			Install::maybe_upgrade();
 			Admin::instance();
 			Product_Metabox::instance();
 			Bulk_Rules_Admin::instance();

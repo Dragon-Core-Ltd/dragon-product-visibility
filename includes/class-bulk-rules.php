@@ -70,10 +70,13 @@ class Bulk_Rules {
 
 	/**
 	 * Persist a set of rules (each validated; invalid entries dropped).
+	 * update_option() returns false for an unchanged value as well as a failed
+	 * write, so the stored value is read back to confirm.
 	 *
 	 * @param array $rules Rules to store.
+	 * @return bool True when the stored rules match what was requested.
 	 */
-	public static function save( array $rules ): void {
+	public static function save( array $rules ): bool {
 		$clean = array();
 		foreach ( $rules as $rule ) {
 			$valid = self::sanitize( $rule );
@@ -82,11 +85,15 @@ class Bulk_Rules {
 			}
 		}
 
-		update_option( self::OPTION, array_values( $clean ), false );
+		$clean = array_values( $clean );
+		update_option( self::OPTION, $clean, false );
+
+		return get_option( self::OPTION ) === $clean;
 	}
 
 	/**
-	 * Delete a rule by its id. Returns true if a rule was removed.
+	 * Delete a rule by its id. Returns true if a rule was removed and the
+	 * remaining rules were saved.
 	 *
 	 * @param string $id Rule id.
 	 * @return bool
@@ -104,11 +111,7 @@ class Bulk_Rules {
 			$kept[] = $rule;
 		}
 
-		if ( $removed ) {
-			self::save( $kept );
-		}
-
-		return $removed;
+		return $removed && self::save( $kept );
 	}
 
 	/**

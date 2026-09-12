@@ -253,11 +253,47 @@ class Product_Metabox {
 	}
 
 	/**
+	 * Query flag appended to the post-save redirect when the rules did not save.
+	 */
+	const ERROR_FLAG = 'dragonproductvisibility_save_error';
+
+	/**
+	 * Flag value for a failed save whose previous rules are confirmed intact.
+	 */
+	const ERROR_RESTORED = '1';
+
+	/**
+	 * Flag value for a failed save that left the stored rules changed.
+	 */
+	const ERROR_PARTIAL = '2';
+
+	/**
+	 * Products already saved during this request. WooCommerce fires both the
+	 * generic and the type-specific process_product_meta actions for one save,
+	 * so the second call is skipped rather than re-run.
+	 *
+	 * @var array<int, bool>
+	 */
+	private static array $saved_this_request = array();
+
+	/**
+	 * Products whose save failed this request, against whether the rules stored
+	 * now are the ones that were stored before.
+	 *
+	 * @var array<int, bool>
+	 */
+	private static array $failed_saves = array();
+
+	/**
 	 * Save product data
 	 *
 	 * @param int $post_id Product ID
 	 */
 	public function save_product_data( int $post_id ): void {
+		if ( isset( self::$saved_this_request[ $post_id ] ) ) {
+			return;
+		}
+
 		// Verify nonce
 		if ( ! isset( $_POST['dragonproductvisibility_visibility_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['dragonproductvisibility_visibility_nonce'] ) ), 'dragonproductvisibility_save_visibility' ) ) {
 			return;
@@ -268,52 +304,41 @@ class Product_Metabox {
 			return;
 		}
 
-		// Save restriction mode
 		$restriction_mode = isset( $_POST['dragonproductvisibility_restriction_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['dragonproductvisibility_restriction_mode'] ) ) : 'none';
-		update_post_meta( $post_id, '_dpv_restriction_mode', $restriction_mode );
+		$roles            = isset( $_POST['dragonproductvisibility_roles'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['dragonproductvisibility_roles'] ) ) : array();
+		$customers        = isset( $_POST['dragonproductvisibility_customers'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['dragonproductvisibility_customers'] ) ) : array();
 
-		// Save roles
-		$roles = isset( $_POST['dragonproductvisibility_roles'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['dragonproductvisibility_roles'] ) ) : array();
-		update_post_meta( $post_id, '_dpv_visible_roles', $roles );
+		self::$saved_this_request[ $post_id ] = true;
 
-		// Save customers
-		$customers = isset( $_POST['dragonproductvisibility_customers'] ) ? array_map( 'absint', wp_unslash( $_POST['dragonproductvisibility_customers'] ) ) : array();
-		$this->save_customer_visibility( $post_id, $customers );
+		$result = Customer_Visibility::save_rules( $post_id, $restriction_mode, $roles, $customers );
+
+		if ( ! $result['saved'] ) {
+			// WordPress redirects after saving. Carrying the outcome on the
+			// redirect URL needs no further database write, which may be the
+			// very thing that just failed; Admin::save_error_notice() renders it.
+			// Which of the two outcomes it is travels with the flag, so the notice
+			// only claims the previous rules survived when they did.
+			self::$failed_saves[ $post_id ] = (bool) $result['restored'];
+			add_filter( 'redirect_post_location', array( $this, 'flag_save_error' ), 10, 2 );
+		}
 	}
 
 	/**
-	 * Save customer visibility to custom table
+	 * Append the save-error flag to the post-save redirect.
 	 *
-	 * @param int   $product_id Product ID
-	 * @param array $customer_ids Customer IDs
+	 * @param string $location Redirect URL.
+	 * @param int    $post_id  Post being saved.
+	 * @return string
 	 */
-	private function save_customer_visibility( int $product_id, array $customer_ids ): void {
-		global $wpdb;
-		$table_name = $wpdb->prefix . 'dpv_customer_visibility';
-
-		// Check if table exists
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Table existence check.
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
-			Install::activate(); // Create tables if missing
+	public function flag_save_error( string $location, int $post_id ): string {
+		if ( ! isset( self::$failed_saves[ $post_id ] ) ) {
+			return $location;
 		}
 
-		// Delete existing entries
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Clearing before save.
-		$wpdb->delete( $table_name, array( 'product_id' => $product_id ), array( '%d' ) );
-
-		// Insert new entries
-		foreach ( $customer_ids as $customer_id ) {
-			if ( $customer_id > 0 ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Inserting visibility rules.
-				$wpdb->insert(
-					$table_name,
-					array(
-						'product_id'  => $product_id,
-						'customer_id' => $customer_id,
-					),
-					array( '%d', '%d' )
-				);
-			}
-		}
+		return add_query_arg(
+			self::ERROR_FLAG,
+			self::$failed_saves[ $post_id ] ? self::ERROR_RESTORED : self::ERROR_PARTIAL,
+			$location
+		);
 	}
 }

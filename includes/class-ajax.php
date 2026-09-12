@@ -126,9 +126,17 @@ class Ajax {
 		}
 
 		$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+		$product    = $product_id ? get_post( $product_id ) : null;
 
-		if ( ! $product_id ) {
+		if ( ! $product || 'product' !== $product->post_type ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid product ID', 'dragon-product-visibility' ) ) );
+			return;
+		}
+
+		// The generic capability above only says the user edits products at all;
+		// this one is mapped by WooCommerce onto the specific product.
+		if ( ! current_user_can( 'edit_post', $product_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied', 'dragon-product-visibility' ) ) );
 			return;
 		}
 
@@ -137,47 +145,23 @@ class Ajax {
 		$customer_ids     = isset( $_POST['customer_ids'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['customer_ids'] ) ) : array();
 		$role_ids         = isset( $_POST['role_ids'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['role_ids'] ) ) : array();
 
-		// Save restriction mode
-		update_post_meta( $product_id, '_dpv_restriction_mode', $restriction_mode );
+		$result = Customer_Visibility::save_rules( $product_id, $restriction_mode, $role_ids, $customer_ids );
 
-		// Save roles
-		update_post_meta( $product_id, '_dpv_visible_roles', $role_ids );
-
-		// Save customer-specific visibility
-		$this->save_customer_visibility( $product_id, $customer_ids );
-
-		wp_send_json_success( array( 'message' => __( 'Visibility rules saved', 'dragon-product-visibility' ) ) );
-	}
-
-	/**
-	 * Save customer visibility to custom table
-	 *
-	 * @param int   $product_id   Product ID
-	 * @param array $customer_ids Array of customer IDs
-	 */
-	private function save_customer_visibility( int $product_id, array $customer_ids ): void {
-		global $wpdb;
-
-		$table_name = $wpdb->prefix . 'dpv_customer_visibility';
-
-		// Delete existing rules for this product
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Clearing existing rules before save.
-		$wpdb->delete( $table_name, array( 'product_id' => $product_id ), array( '%d' ) );
-
-		// Insert new rules
-		if ( ! empty( $customer_ids ) ) {
-			foreach ( $customer_ids as $customer_id ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Inserting customer visibility rules.
-				$wpdb->insert(
-					$table_name,
-					array(
-						'product_id'  => $product_id,
-						'customer_id' => $customer_id,
-					),
-					array( '%d', '%d' )
-				);
-			}
+		if ( ! $result['saved'] ) {
+			// The message describes the rules that are actually stored now, which
+			// is not always the set this request asked for nor the set that was
+			// there before.
+			wp_send_json_error(
+				array(
+					'message'  => $result['message'],
+					'restored' => $result['restored'],
+					'stored'   => $result['stored'],
+				)
+			);
+			return;
 		}
+
+		wp_send_json_success( array( 'message' => $result['message'] ) );
 	}
 
 	/**

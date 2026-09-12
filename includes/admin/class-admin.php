@@ -40,6 +40,7 @@ class Admin {
 	private function __construct() {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'admin_notices', array( $this, 'activation_notice' ) );
+		add_action( 'admin_notices', array( $this, 'save_error_notice' ) );
 	}
 
 	/**
@@ -113,6 +114,36 @@ class Admin {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Show the product-save failure flagged on the post-save redirect.
+	 */
+	public function save_error_notice(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag set by the plugin's own redirect; no state change.
+		if ( empty( $_GET[ Product_Metabox::ERROR_FLAG ] ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- As above.
+		$outcome = sanitize_key( wp_unslash( $_GET[ Product_Metabox::ERROR_FLAG ] ) );
+
+		// Only the flag travels through the redirect, so the wording stays general
+		// where the rules changed: the Visibility Restrictions tab below shows what
+		// is actually stored.
+		if ( Product_Metabox::ERROR_PARTIAL === $outcome ) {
+			?>
+			<div class="notice notice-error">
+				<p><?php esc_html_e( 'Visibility restrictions could not be saved, and the rules that were there before could not be fully restored. Check this product\'s Visibility Restrictions tab before relying on it.', 'dragon-product-visibility' ); ?></p>
+			</div>
+			<?php
+			return;
+		}
+		?>
+		<div class="notice notice-error is-dismissible">
+			<p><?php esc_html_e( 'Visibility restrictions could not be saved. The product keeps its previous rules.', 'dragon-product-visibility' ); ?></p>
+		</div>
+		<?php
 	}
 
 	/**

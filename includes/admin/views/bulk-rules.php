@@ -42,6 +42,10 @@ $dragonproductvisibility_err = isset( $_GET['dpv_error'] ) ? sanitize_key( wp_un
 		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Please choose a valid rule type.', 'dragon-product-visibility' ); ?></p></div>
 	<?php elseif ( 'roles' === $dragonproductvisibility_err ) : ?>
 		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Please select at least one role.', 'dragon-product-visibility' ); ?></p></div>
+	<?php elseif ( 'save' === $dragonproductvisibility_err ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'The rule could not be saved. Your existing rules are unchanged.', 'dragon-product-visibility' ); ?></p></div>
+	<?php elseif ( 'delete' === $dragonproductvisibility_err ) : ?>
+		<div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'The rule could not be deleted. It may already have been removed, or the change could not be saved.', 'dragon-product-visibility' ); ?></p></div>
 	<?php endif; ?>
 
 	<h2><?php esc_html_e( 'Active rules', 'dragon-product-visibility' ); ?></h2>
