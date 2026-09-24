@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 8.0
 WC requires at least: 7.0
 WC tested up to: 10.4
-Stable tag: 1.0.9
+Stable tag: 1.0.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -96,6 +96,10 @@ Yes, the plugin declares HPOS compatibility.
 
 == Changelog ==
 
+= 1.0.10 =
+* Every screen, email and alert is now translatable, and translations bundled in the plugin's languages folder now load. Counts use proper plural forms, and numbers and dates follow your site's language.
+* Product names in the cart notice are escaped.
+
 = 1.0.9 =
 * Fixed: saving a product's visibility restrictions could silently lose its customer list. The old list was deleted before the new one was written, with neither step checked, and a failed write was still reported as "saved". The save now only removes deselected customers and adds newly selected ones, and a failed write is reported with an error on the product screen or in the AJAX response instead of a success message.
 * Fixed: a part-finished save could leave a product visible to a customer it was meant to hide from. On a database that cannot undo a half-finished save - an older MyISAM table, or a host that hides the information the plugin needs to tell - deleting the old customer rows could succeed while writing the new ones failed, leaving a blacklisted customer unblocked (or a new customer allowed in under a whitelist) while the screen said the product kept its previous rules. The plugin now confirms that both its own table and the post meta table can undo a half-finished save before it starts one, orders the writes so an interrupted save can only leave a product more restricted rather than less, puts back anything it did manage to write, and reads the rules back afterwards so the message tells you what is actually stored.
@@ -137,6 +141,9 @@ Yes, the plugin declares HPOS compatibility.
 * WooCommerce blocks support
 
 == Upgrade Notice ==
+
+= 1.0.10 =
+Translation-ready throughout.
 
 = 1.0.9 =
 Fixes a save path that could silently drop a product's customer restrictions: existing customers are no longer deleted before the new list is written, and failures are reported.
