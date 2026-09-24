@@ -59,6 +59,15 @@ function __( $text, $domain = 'default' ) {
 	return $text;
 }
 
+function _n( $single, $plural, $number, $domain = 'default' ) {
+	unset( $domain );
+	return 1 === (int) $number ? $single : $plural;
+}
+
+function number_format_i18n( $number, $decimals = 0 ) {
+	return number_format( (float) $number, absint( $decimals ) );
+}
+
 function esc_html__( $text, $domain = 'default' ) {
 	unset( $domain );
 	return $text;

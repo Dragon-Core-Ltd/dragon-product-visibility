@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $dragonproductvisibility_roles = get_editable_roles();
-$dragonproductvisibility_names = wp_list_pluck( $dragonproductvisibility_roles, 'name' );
+$dragonproductvisibility_names = array_map( 'translate_user_role', wp_list_pluck( $dragonproductvisibility_roles, 'name' ) );
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status flag for a notice; no state change.
 $dragonproductvisibility_msg = isset( $_GET['dpv_msg'] ) ? sanitize_key( wp_unslash( $_GET['dpv_msg'] ) ) : '';
@@ -89,7 +89,7 @@ $dragonproductvisibility_err = isset( $_GET['dpv_error'] ) ? sanitize_key( wp_un
 							<span class="description">(<?php echo esc_html( $dragonproductvisibility_tax_label ); ?>)</span>
 						</td>
 						<td><?php echo esc_html( $dragonproductvisibility_rule_label ); ?></td>
-						<td><?php echo esc_html( implode( ', ', $dragonproductvisibility_role_labels ) ); ?></td>
+						<td><?php echo esc_html( wp_sprintf_l( '%l', $dragonproductvisibility_role_labels ) ); ?></td>
 						<td>
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
 								<?php wp_nonce_field( 'dragonproductvisibility_delete_bulk_rule' ); ?>
@@ -113,7 +113,7 @@ $dragonproductvisibility_err = isset( $_GET['dpv_error'] ) ? sanitize_key( wp_un
 				<th scope="row"><label for="dpv_term"><?php esc_html_e( 'Category or tag', 'dragon-product-visibility' ); ?></label></th>
 				<td>
 					<select name="dpv_term" id="dpv_term" required>
-						<option value=""><?php esc_html_e( '— Select —', 'dragon-product-visibility' ); ?></option>
+						<option value=""><?php esc_html_e( '- Select -', 'dragon-product-visibility' ); ?></option>
 						<?php
 						foreach ( array(
 							'product_cat' => __( 'Categories', 'dragon-product-visibility' ),

@@ -274,8 +274,8 @@ final class CustomerVisibilityTest extends TestCase {
 		$this->assertSame( array( 5, 7 ), $result['stored']['customers'], 'the outcome must carry the rules that were read back' );
 		$this->assertStringNotContainsString( 'keeps its previous rules', $result['message'], 'the admin must not be told the previous rules survived when they did not' );
 		$this->assertStringContainsString( 'blacklist', $result['message'] );
-		$this->assertStringContainsString( '2 listed customer(s)', $result['message'] );
-		$this->assertStringContainsString( '0 listed role(s)', $result['message'] );
+		$this->assertStringContainsString( '2 listed customers', $result['message'] );
+		$this->assertStringContainsString( '0 listed roles', $result['message'] );
 	}
 
 	public function test_the_previous_roles_are_put_back_when_the_mode_write_fails(): void {

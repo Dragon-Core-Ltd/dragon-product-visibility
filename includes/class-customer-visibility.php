@@ -299,11 +299,19 @@ class Customer_Visibility {
 			'saved'    => false,
 			'restored' => false,
 			'message'  => sprintf(
-				/* translators: 1: restriction mode now stored, 2: number of listed customers, 3: number of listed roles. */
-				__( 'Visibility rules could not be saved, and the previous rules could not be fully restored. The product is now stored with restriction mode %1$s, %2$d listed customer(s) and %3$d listed role(s). Check its visibility restrictions before relying on them.', 'dragon-product-visibility' ),
+				/* translators: 1: restriction mode now stored, 2: listed customer count (e.g. "2 listed customers"), 3: listed role count (e.g. "1 listed role"). */
+				__( 'Visibility rules could not be saved, and the previous rules could not be fully restored. The product is now stored with restriction mode %1$s, %2$s and %3$s. Check its visibility restrictions before relying on them.', 'dragon-product-visibility' ),
 				self::mode_label( $stored['mode'] ),
-				count( $stored['customers'] ),
-				count( $stored['roles'] )
+				sprintf(
+					/* translators: %s: number of customers listed on the product. */
+					_n( '%s listed customer', '%s listed customers', count( $stored['customers'] ), 'dragon-product-visibility' ),
+					number_format_i18n( count( $stored['customers'] ) )
+				),
+				sprintf(
+					/* translators: %s: number of roles listed on the product. */
+					_n( '%s listed role', '%s listed roles', count( $stored['roles'] ), 'dragon-product-visibility' ),
+					number_format_i18n( count( $stored['roles'] ) )
+				)
 			),
 			'stored'   => $stored,
 		);

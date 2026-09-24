@@ -9,6 +9,7 @@
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: dragon-product-visibility
+ * Domain Path: /languages
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Requires Plugins: woocommerce
@@ -48,6 +49,14 @@ register_deactivation_hook( DRAGONPRODUCTVISIBILITY_PLUGIN_FILE, array( Install:
 function dpv(): Plugin {
 	return Plugin::instance();
 }
+
+/**
+ * Load bundled translations.
+ */
+function dragonproductvisibility_load_textdomain(): void {
+	load_plugin_textdomain( 'dragon-product-visibility', false, dirname( DRAGONPRODUCTVISIBILITY_PLUGIN_BASENAME ) . '/languages' );
+}
+add_action( 'init', __NAMESPACE__ . '\dragonproductvisibility_load_textdomain', 0 );
 
 // Initialize.
 add_action( 'plugins_loaded', __NAMESPACE__ . '\dpv' );

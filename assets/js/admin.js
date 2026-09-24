@@ -89,6 +89,12 @@
                     },
                     searching: function() {
                         return dragonproductvisibility_admin.i18n.searching;
+                    },
+                    inputTooShort: function() {
+                        return dragonproductvisibility_admin.i18n.input_too_short;
+                    },
+                    errorLoading: function() {
+                        return dragonproductvisibility_admin.i18n.error_loading;
                     }
                 }
             });

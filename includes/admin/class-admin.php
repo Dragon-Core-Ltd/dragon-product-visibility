@@ -89,6 +89,8 @@ class Admin {
 					'select_roles'     => __( 'Select roles...', 'dragon-product-visibility' ),
 					'no_results'       => __( 'No results found', 'dragon-product-visibility' ),
 					'searching'        => __( 'Searching...', 'dragon-product-visibility' ),
+					'input_too_short'  => __( 'Type at least one character to search.', 'dragon-product-visibility' ),
+					'error_loading'    => __( 'The results could not be loaded.', 'dragon-product-visibility' ),
 					'save_success'     => __( 'Visibility rules saved successfully!', 'dragon-product-visibility' ),
 					'save_error'       => __( 'Error saving visibility rules.', 'dragon-product-visibility' ),
 				),
@@ -153,7 +155,7 @@ class Admin {
 		$roles = array();
 
 		foreach ( wp_roles()->roles as $role_key => $role ) {
-			$roles[ $role_key ] = $role['name'];
+			$roles[ $role_key ] = translate_user_role( $role['name'] );
 		}
 
 		return $roles;

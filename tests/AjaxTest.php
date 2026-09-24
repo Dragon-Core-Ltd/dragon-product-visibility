@@ -108,7 +108,7 @@ final class AjaxTest extends TestCase {
 		$this->assertFalse( $sent->success );
 		$this->assertFalse( $sent->data['restored'] );
 		$this->assertStringNotContainsString( 'keeps its previous rules', $sent->data['message'] );
-		$this->assertStringContainsString( '2 listed customer(s)', $sent->data['message'] );
+		$this->assertStringContainsString( '2 listed customers', $sent->data['message'] );
 		$this->assertSame( array( 5, 7 ), $sent->data['stored']['customers'] );
 	}
 }

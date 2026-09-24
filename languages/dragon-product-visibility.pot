@@ -1,0 +1,401 @@
+# Copyright (C) 2026 Dragon Core
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Dragon Product Visibility for WooCommerce 1.0.9\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/dragon-product-visibility\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-24T17:14:11+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.11.0\n"
+"X-Domain: dragon-product-visibility\n"
+
+#. Plugin Name of the plugin
+#: dragon-product-visibility.php
+msgid "Dragon Product Visibility for WooCommerce"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: dragon-product-visibility.php
+msgid "https://dragoncore.ltd/plugins/dragon-product-visibility"
+msgstr ""
+
+#. Description of the plugin
+#: dragon-product-visibility.php
+msgid "Restrict WooCommerce product visibility by specific customers or user roles. Products can be made exclusive to certain users without complex membership plugins."
+msgstr ""
+
+#. Author of the plugin
+#: dragon-product-visibility.php
+msgid "Dragon Core"
+msgstr ""
+
+#. Author URI of the plugin
+#: dragon-product-visibility.php
+msgid "https://dragoncore.ltd"
+msgstr ""
+
+#: includes/admin/class-admin.php:88
+msgid "Search for customers..."
+msgstr ""
+
+#: includes/admin/class-admin.php:89
+msgid "Select roles..."
+msgstr ""
+
+#: includes/admin/class-admin.php:90
+msgid "No results found"
+msgstr ""
+
+#: includes/admin/class-admin.php:91
+msgid "Searching..."
+msgstr ""
+
+#: includes/admin/class-admin.php:92
+msgid "Type at least one character to search."
+msgstr ""
+
+#: includes/admin/class-admin.php:93
+msgid "The results could not be loaded."
+msgstr ""
+
+#: includes/admin/class-admin.php:94
+msgid "Visibility rules saved successfully!"
+msgstr ""
+
+#: includes/admin/class-admin.php:95
+msgid "Error saving visibility rules."
+msgstr ""
+
+#: includes/admin/class-admin.php:112
+msgid "<strong>Dragon Product Visibility</strong> has been activated. Edit any product to configure visibility restrictions."
+msgstr ""
+
+#: includes/admin/class-admin.php:139
+msgid "Visibility restrictions could not be saved, and the rules that were there before could not be fully restored. Check this product's Visibility Restrictions tab before relying on it."
+msgstr ""
+
+#: includes/admin/class-admin.php:146
+msgid "Visibility restrictions could not be saved. The product keeps its previous rules."
+msgstr ""
+
+#: includes/admin/class-bulk-rules-admin.php:62
+#: includes/admin/views/bulk-rules.php:27
+msgid "Product Visibility Rules"
+msgstr ""
+
+#: includes/admin/class-bulk-rules-admin.php:63
+msgid "Visibility Rules"
+msgstr ""
+
+#: includes/admin/class-bulk-rules-admin.php:75
+#: includes/admin/class-bulk-rules-admin.php:127
+msgid "Permission denied."
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:64
+msgid "Visibility Restrictions"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:120
+msgid "Product Visibility Restrictions"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:123
+msgid "Control which customers can see and purchase this product. By default, products are visible to everyone."
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:130
+msgid "Restriction Mode"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:133
+msgid "No restrictions (visible to all)"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:136
+msgid "Whitelist - Only selected can see"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:139
+msgid "Blacklist - Hide from selected"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:149
+msgid "Specific Customers"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:151
+msgid "Search and select individual customers who CAN view this product."
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:154
+msgid "Search and select individual customers who CANNOT view this product."
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:159
+msgid "Allowed Customers"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:160
+msgid "Blocked Customers"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:174
+msgid "User Roles"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:176
+msgid "Select user roles that CAN view this product."
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:179
+msgid "Select user roles that CANNOT view this product."
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:184
+msgid "Allowed Roles"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:185
+msgid "Blocked Roles"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:200
+msgid "Whitelist Mode:"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:201
+msgid "Only users in the allowed list will see this product. Everyone else will be blocked."
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:206
+msgid "Blacklist Mode:"
+msgstr ""
+
+#: includes/admin/class-product-metabox.php:207
+msgid "Users in the blocked list will NOT see this product. Everyone else can view it normally."
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:30
+msgid "Hide or restrict whole product categories or tags by user role. A rule on a category also covers its sub-categories. A per-product rule set on an individual product always takes precedence over these."
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:34
+msgid "Rule added."
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:36
+msgid "Rule deleted."
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:40
+msgid "Please choose a valid category or tag."
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:42
+msgid "Please choose a valid rule type."
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:44
+msgid "Please select at least one role."
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:46
+msgid "The rule could not be saved. Your existing rules are unchanged."
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:48
+msgid "The rule could not be deleted. It may already have been removed, or the change could not be saved."
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:51
+msgid "Active rules"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:55
+msgid "Applies to"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:56
+msgid "Rule"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:57
+#: includes/admin/views/bulk-rules.php:155
+msgid "Roles"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:58
+msgid "Actions"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:63
+msgid "No rules yet. Add one below."
+msgstr ""
+
+#. translators: %d: term ID of a category or tag that no longer exists.
+#: includes/admin/views/bulk-rules.php:71
+msgid "(deleted term #%d)"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:74
+msgid "Category"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:75
+msgid "Tag"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:78
+msgid "Only these roles can see"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:79
+msgid "Hidden from these roles"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:98
+msgid "Delete"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:107
+msgid "Add a rule"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:113
+msgid "Category or tag"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:116
+msgid "- Select -"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:119
+msgid "Categories"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:120
+msgid "Tags"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:145
+msgid "Rule type"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:148
+msgid "Hide from the selected roles"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:149
+msgid "Show only to the selected roles"
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:151
+msgid "“Show only to” also hides the products from logged-out visitors."
+msgstr ""
+
+#: includes/admin/views/bulk-rules.php:168
+msgid "Add rule"
+msgstr ""
+
+#: includes/class-ajax.php:57
+#: includes/class-ajax.php:118
+#: includes/class-ajax.php:173
+msgid "Security check failed"
+msgstr ""
+
+#: includes/class-ajax.php:63
+#: includes/class-ajax.php:124
+#: includes/class-ajax.php:139
+#: includes/class-ajax.php:179
+msgid "Permission denied"
+msgstr ""
+
+#: includes/class-ajax.php:132
+#: includes/class-ajax.php:186
+msgid "Invalid product ID"
+msgstr ""
+
+#: includes/class-customer-visibility.php:72
+msgid "Visibility rules could not be saved because the customer visibility table is missing. The product keeps its previous rules."
+msgstr ""
+
+#: includes/class-customer-visibility.php:83
+msgid "Visibility rules could not be saved because the product's current rules could not be read. The product keeps its previous rules."
+msgstr ""
+
+#: includes/class-customer-visibility.php:179
+msgid "Visibility rules saved"
+msgstr ""
+
+#: includes/class-customer-visibility.php:284
+msgid "Visibility rules could not be saved, and the rules now stored could not be read back. Check this product's visibility restrictions before relying on them."
+msgstr ""
+
+#: includes/class-customer-visibility.php:293
+msgid "Visibility rules could not be saved. The product keeps its previous rules."
+msgstr ""
+
+#. translators: 1: restriction mode now stored, 2: listed customer count (e.g. "2 listed customers"), 3: listed role count (e.g. "1 listed role").
+#: includes/class-customer-visibility.php:303
+msgid "Visibility rules could not be saved, and the previous rules could not be fully restored. The product is now stored with restriction mode %1$s, %2$s and %3$s. Check its visibility restrictions before relying on them."
+msgstr ""
+
+#. translators: %s: number of customers listed on the product.
+#: includes/class-customer-visibility.php:307
+msgid "%s listed customer"
+msgid_plural "%s listed customers"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of roles listed on the product.
+#: includes/class-customer-visibility.php:312
+msgid "%s listed role"
+msgid_plural "%s listed roles"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-customer-visibility.php:343
+msgid "whitelist (only listed customers and roles can see it)"
+msgstr ""
+
+#: includes/class-customer-visibility.php:347
+msgid "blacklist (listed customers and roles cannot see it)"
+msgstr ""
+
+#: includes/class-customer-visibility.php:350
+msgid "none (no per-product restriction)"
+msgstr ""
+
+#: includes/class-plugin.php:169
+msgid "Dragon Product Visibility for WooCommerce requires WooCommerce to be installed and active."
+msgstr ""
+
+#: includes/class-plugin.php:170
+msgid "Dismiss permanently"
+msgstr ""
+
+#: includes/class-visibility-filter.php:178
+#: includes/class-visibility-filter.php:345
+msgid "Sorry, you do not have access to view this product."
+msgstr ""
+
+#: includes/class-visibility-filter.php:382
+msgid "Sorry, you cannot purchase this product."
+msgstr ""
+
+#: includes/class-visibility-filter.php:408
+msgid "Product"
+msgstr ""
+
+#. translators: %s: list of the product names removed from the cart.
+#: includes/class-visibility-filter.php:423
+msgid "%s has been removed from your cart as you no longer have access to purchase it."
+msgid_plural "%s have been removed from your cart as you no longer have access to purchase them."
+msgstr[0] ""
+msgstr[1] ""

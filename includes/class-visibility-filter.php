@@ -419,14 +419,14 @@ class Visibility_Filter {
 			// Build error message
 			$product_names = array_column( $restricted_items, 'name' );
 			$message       = sprintf(
-				/* translators: %s: comma-separated list of product name(s) removed from the cart. */
+				/* translators: %s: list of the product names removed from the cart. */
 				_n(
 					'%s has been removed from your cart as you no longer have access to purchase it.',
 					'%s have been removed from your cart as you no longer have access to purchase them.',
 					count( $restricted_items ),
 					'dragon-product-visibility'
 				),
-				'<strong>' . implode( ', ', $product_names ) . '</strong>'
+				'<strong>' . wp_sprintf_l( '%l', array_map( 'esc_html', $product_names ) ) . '</strong>'
 			);
 
 			wc_add_notice( $message, 'error' );
