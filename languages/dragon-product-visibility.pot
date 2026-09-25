@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-25T04:19:05+00:00\n"
+"POT-Creation-Date: 2026-09-25T07:40:45+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: dragon-product-visibility\n"
@@ -83,17 +83,17 @@ msgstr ""
 msgid "Visibility restrictions could not be saved. The product keeps its previous rules."
 msgstr ""
 
-#: includes/admin/class-bulk-rules-admin.php:62
-#: includes/admin/views/bulk-rules.php:27
+#: includes/admin/class-bulk-rules-admin.php:76
+#: includes/admin/views/bulk-rules.php:26
 msgid "Product Visibility Rules"
 msgstr ""
 
-#: includes/admin/class-bulk-rules-admin.php:63
+#: includes/admin/class-bulk-rules-admin.php:77
 msgid "Visibility Rules"
 msgstr ""
 
-#: includes/admin/class-bulk-rules-admin.php:75
-#: includes/admin/class-bulk-rules-admin.php:127
+#: includes/admin/class-bulk-rules-admin.php:89
+#: includes/admin/class-bulk-rules-admin.php:140
 msgid "Permission denied."
 msgstr ""
 
@@ -101,212 +101,212 @@ msgstr ""
 msgid "Visibility Restrictions"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:142
+#: includes/admin/class-product-metabox.php:156
 msgid "Product Visibility Restrictions"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:145
+#: includes/admin/class-product-metabox.php:159
 msgid "Control which customers can see and purchase this product. By default, products are visible to everyone."
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:152
+#: includes/admin/class-product-metabox.php:166
 msgid "Restriction Mode"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:155
+#: includes/admin/class-product-metabox.php:169
 msgid "No restrictions (visible to all)"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:158
+#: includes/admin/class-product-metabox.php:172
 msgid "Whitelist - Only selected can see"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:161
+#: includes/admin/class-product-metabox.php:175
 msgid "Blacklist - Hide from selected"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:171
+#: includes/admin/class-product-metabox.php:185
 msgid "Specific Customers"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:173
+#: includes/admin/class-product-metabox.php:187
 msgid "Search and select individual customers who CAN view this product."
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:176
+#: includes/admin/class-product-metabox.php:190
 msgid "Search and select individual customers who CANNOT view this product."
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:181
+#: includes/admin/class-product-metabox.php:195
 msgid "Allowed Customers"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:182
+#: includes/admin/class-product-metabox.php:196
 msgid "Blocked Customers"
 msgstr ""
 
 #. translators: %s: number of customers on this product's list.
-#: includes/admin/class-product-metabox.php:205
+#: includes/admin/class-product-metabox.php:219
 msgid "%s customer selected."
 msgid_plural "%s customers selected."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/admin/class-product-metabox.php:217
+#: includes/admin/class-product-metabox.php:231
 msgid "User Roles"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:219
+#: includes/admin/class-product-metabox.php:233
 msgid "Select user roles that CAN view this product."
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:222
+#: includes/admin/class-product-metabox.php:236
 msgid "Select user roles that CANNOT view this product."
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:227
+#: includes/admin/class-product-metabox.php:241
 msgid "Allowed Roles"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:228
+#: includes/admin/class-product-metabox.php:242
 msgid "Blocked Roles"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:243
+#: includes/admin/class-product-metabox.php:257
 msgid "Whitelist Mode:"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:244
+#: includes/admin/class-product-metabox.php:258
 msgid "Only users in the allowed list will see this product. Everyone else will be blocked."
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:249
+#: includes/admin/class-product-metabox.php:263
 msgid "Blacklist Mode:"
 msgstr ""
 
-#: includes/admin/class-product-metabox.php:250
+#: includes/admin/class-product-metabox.php:264
 msgid "Users in the blocked list will NOT see this product. Everyone else can view it normally."
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:30
+#: includes/admin/views/bulk-rules.php:29
 msgid "Hide or restrict whole product categories or tags by user role. A rule on a category also covers its sub-categories. A per-product rule set on an individual product always takes precedence over these."
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:34
+#: includes/admin/views/bulk-rules.php:33
 msgid "Rule added."
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:36
+#: includes/admin/views/bulk-rules.php:35
 msgid "Rule deleted."
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:40
+#: includes/admin/views/bulk-rules.php:39
 msgid "Please choose a valid category or tag."
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:42
+#: includes/admin/views/bulk-rules.php:41
 msgid "Please choose a valid rule type."
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:44
+#: includes/admin/views/bulk-rules.php:43
 msgid "Please select at least one role."
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:46
+#: includes/admin/views/bulk-rules.php:45
 msgid "The rule could not be saved. Your existing rules are unchanged."
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:48
+#: includes/admin/views/bulk-rules.php:47
 msgid "The rule could not be deleted. It may already have been removed, or the change could not be saved."
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:51
+#: includes/admin/views/bulk-rules.php:50
 msgid "Active rules"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:55
+#: includes/admin/views/bulk-rules.php:54
 msgid "Applies to"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:56
+#: includes/admin/views/bulk-rules.php:55
 msgid "Rule"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:57
-#: includes/admin/views/bulk-rules.php:155
+#: includes/admin/views/bulk-rules.php:56
+#: includes/admin/views/bulk-rules.php:154
 msgid "Roles"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:58
+#: includes/admin/views/bulk-rules.php:57
 msgid "Actions"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:63
+#: includes/admin/views/bulk-rules.php:62
 msgid "No rules yet. Add one below."
 msgstr ""
 
 #. translators: %d: term ID of a category or tag that no longer exists.
-#: includes/admin/views/bulk-rules.php:71
+#: includes/admin/views/bulk-rules.php:70
 msgid "(deleted term #%d)"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:74
+#: includes/admin/views/bulk-rules.php:73
 msgid "Category"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:75
+#: includes/admin/views/bulk-rules.php:74
 msgid "Tag"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:78
+#: includes/admin/views/bulk-rules.php:77
 msgid "Only these roles can see"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:79
+#: includes/admin/views/bulk-rules.php:78
 msgid "Hidden from these roles"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:98
+#: includes/admin/views/bulk-rules.php:97
 msgid "Delete"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:107
+#: includes/admin/views/bulk-rules.php:106
 msgid "Add a rule"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:113
+#: includes/admin/views/bulk-rules.php:112
 msgid "Category or tag"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:116
+#: includes/admin/views/bulk-rules.php:115
 msgid "- Select -"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:119
+#: includes/admin/views/bulk-rules.php:118
 msgid "Categories"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:120
+#: includes/admin/views/bulk-rules.php:119
 msgid "Tags"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:145
+#: includes/admin/views/bulk-rules.php:144
 msgid "Rule type"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:148
+#: includes/admin/views/bulk-rules.php:147
 msgid "Hide from the selected roles"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:149
+#: includes/admin/views/bulk-rules.php:148
 msgid "Show only to the selected roles"
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:151
+#: includes/admin/views/bulk-rules.php:150
 msgid "“Show only to” also hides the products from logged-out visitors."
 msgstr ""
 
-#: includes/admin/views/bulk-rules.php:168
+#: includes/admin/views/bulk-rules.php:167
 msgid "Add rule"
 msgstr ""
 

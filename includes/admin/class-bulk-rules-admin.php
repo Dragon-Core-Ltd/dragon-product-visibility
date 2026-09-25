@@ -54,6 +54,20 @@ class Bulk_Rules_Admin {
 	}
 
 	/**
+	 * The submitted roles that exist on the site.
+	 *
+	 * Every registered role can be targeted. get_editable_roles() is not used:
+	 * it lists the roles the current user may assign, which WooCommerce cuts
+	 * to "customer" for shop managers.
+	 *
+	 * @param string[] $roles Submitted role keys.
+	 * @return string[]
+	 */
+	public static function allowed_roles( array $roles ): array {
+		return array_values( array_intersect( $roles, array_keys( Admin::get_all_roles() ) ) );
+	}
+
+	/**
 	 * Register the submenu page under Products.
 	 */
 	public function add_page(): void {
@@ -87,8 +101,7 @@ class Bulk_Rules_Admin {
 			? array_map( 'sanitize_key', wp_unslash( $_POST['dpv_roles'] ) )
 			: array();
 
-		$editable = array_keys( get_editable_roles() );
-		$roles    = array_values( array_intersect( $roles, $editable ) );
+		$roles = self::allowed_roles( $roles );
 
 		$error = '';
 		if ( ! in_array( $taxonomy, Bulk_Rules::TAXONOMIES, true ) || $term_id <= 0 || ! term_exists( $term_id, $taxonomy ) ) {

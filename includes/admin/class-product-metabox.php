@@ -97,6 +97,20 @@ class Product_Metabox {
 	}
 
 	/**
+	 * Whether the customer and role pickers show for a stored mode.
+	 *
+	 * A product with no saved mode shows "No restrictions" in the mode list,
+	 * so its pickers stay hidden too; rules picked under that mode would be
+	 * saved without restricting anything.
+	 *
+	 * @param mixed $mode Stored restriction mode.
+	 * @return bool
+	 */
+	public static function shows_rule_pickers( $mode ): bool {
+		return in_array( $mode, array( 'whitelist', 'blacklist' ), true );
+	}
+
+	/**
 	 * Add tab content
 	 */
 	public function add_tab_content(): void {
@@ -164,7 +178,7 @@ class Product_Metabox {
 				</p>
 			</div>
 
-			<div class="options_group dpv-restrictions-panel" style="<?php echo ( 'none' === $restriction_mode ) ? 'display:none;' : ''; ?>" data-mode="<?php echo esc_attr( $restriction_mode ); ?>">
+			<div class="options_group dpv-restrictions-panel" style="<?php echo self::shows_rule_pickers( $restriction_mode ) ? '' : 'display:none;'; ?>" data-mode="<?php echo esc_attr( $restriction_mode ); ?>">
 
 				<!-- Customer Selection -->
 				<div class="dpv-section">

@@ -34,6 +34,23 @@ final class Dpv_Test_Json_Sent extends \RuntimeException {
 /**
  * Reset every store and install a fresh fake $wpdb. Called from setUp().
  */
+$GLOBALS['dpv_test_roles'] = array();
+
+if ( ! function_exists( 'wp_roles' ) ) {
+	// Core: the WP_Roles registry; ->roles maps role key => array( name, capabilities ).
+	function wp_roles() {
+		return (object) array( 'roles' => $GLOBALS['dpv_test_roles'] );
+	}
+}
+
+if ( ! function_exists( 'translate_user_role' ) ) {
+	// Core: the role name translated in the "User role" context.
+	function translate_user_role( $name, $domain = 'default' ) {
+		unset( $domain );
+		return $name;
+	}
+}
+
 function dpv_test_reset(): \DragonProductVisibility\Tests\Fake_Wpdb {
 	$GLOBALS['wpdb']                       = new \DragonProductVisibility\Tests\Fake_Wpdb();
 	$GLOBALS['dpv_test_options']           = array();

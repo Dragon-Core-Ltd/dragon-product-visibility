@@ -15,8 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$dragonproductvisibility_roles = get_editable_roles();
-$dragonproductvisibility_names = array_map( 'translate_user_role', wp_list_pluck( $dragonproductvisibility_roles, 'name' ) );
+$dragonproductvisibility_names = Admin::get_all_roles();
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status flag for a notice; no state change.
 $dragonproductvisibility_msg = isset( $_GET['dpv_msg'] ) ? sanitize_key( wp_unslash( $_GET['dpv_msg'] ) ) : '';
