@@ -102,12 +102,12 @@ function number_format_i18n( $number, $decimals = 0 ) {
 
 function esc_html__( $text, $domain = 'default' ) {
 	unset( $domain );
-	return $text;
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8', false );
 }
 
 function esc_html_e( $text, $domain = 'default' ) {
 	unset( $domain );
-	echo $text;
+	echo esc_html( $text ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
 
 function esc_html( $text ) {
@@ -120,7 +120,7 @@ function esc_html( $text ) {
 		return '';
 	}
 
-	return str_replace( array( '&', '<', '>', '"', "'" ), array( '&amp;', '&lt;', '&gt;', '&quot;', '&#039;' ), $text );
+	return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8', false );
 }
 
 function absint( $maybeint ) {
