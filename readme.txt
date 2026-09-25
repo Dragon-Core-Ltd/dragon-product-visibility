@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 8.0
 WC requires at least: 7.0
 WC tested up to: 10.4
-Stable tag: 1.0.11
+Stable tag: 1.0.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,10 @@ Yes, the plugin declares HPOS compatibility.
 
 == Changelog ==
 
+= 1.0.12 =
+* The customer and role pickers only appear when a product is restricted, so rules always take effect.
+* Bulk rules can target every role.
+
 = 1.0.11 =
 * Security: restricted products and their variations are hidden from the store API, the WordPress REST API, product blocks and shortcodes, product images and reviews.
 * Visiting a restricted product's address redirects to the shop with a notice.
@@ -150,6 +154,9 @@ Yes, the plugin declares HPOS compatibility.
 * WooCommerce blocks support
 
 == Upgrade Notice ==
+
+= 1.0.12 =
+Rule pickers only show where they take effect.
 
 = 1.0.11 =
 Security: restricted products are hidden everywhere.
