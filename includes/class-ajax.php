@@ -43,9 +43,6 @@ class Ajax {
 
 		// Save visibility rules AJAX
 		add_action( 'wp_ajax_dragonproductvisibility_save_visibility_rules', array( $this, 'save_visibility_rules' ) );
-
-		// Get visibility rules AJAX
-		add_action( 'wp_ajax_dragonproductvisibility_get_visibility_rules', array( $this, 'get_visibility_rules' ) );
 	}
 
 	/**
@@ -58,8 +55,9 @@ class Ajax {
 			return;
 		}
 
-		// Check permissions
-		if ( ! current_user_can( 'edit_products' ) ) {
+		// The results carry every matching account's email address, so editing
+		// products is not enough: the user must be able to see the user list.
+		if ( ! current_user_can( 'edit_products' ) || ! ( current_user_can( 'manage_woocommerce' ) || current_user_can( 'list_users' ) ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied', 'dragon-product-visibility' ) ) );
 			return;
 		}
@@ -162,75 +160,5 @@ class Ajax {
 		}
 
 		wp_send_json_success( array( 'message' => $result['message'] ) );
-	}
-
-	/**
-	 * Get visibility rules via AJAX
-	 */
-	public function get_visibility_rules(): void {
-		// Verify nonce
-		if ( ! isset( $_REQUEST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['nonce'] ) ), 'dragonproductvisibility_admin_nonce' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Security check failed', 'dragon-product-visibility' ) ) );
-			return;
-		}
-
-		// Check permissions
-		if ( ! current_user_can( 'edit_products' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied', 'dragon-product-visibility' ) ) );
-			return;
-		}
-
-		$product_id = isset( $_REQUEST['product_id'] ) ? absint( $_REQUEST['product_id'] ) : 0;
-
-		if ( ! $product_id ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid product ID', 'dragon-product-visibility' ) ) );
-			return;
-		}
-
-		global $wpdb;
-
-		// Get restriction mode
-		$restriction_mode = get_post_meta( $product_id, '_dpv_restriction_mode', true );
-		if ( ! $restriction_mode ) {
-			$restriction_mode = 'none';
-		}
-
-		// Get roles
-		$roles = get_post_meta( $product_id, '_dpv_visible_roles', true );
-		if ( ! is_array( $roles ) ) {
-			$roles = array();
-		}
-
-		// Get customers from custom table
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fetching visibility rules for product.
-		$customers = $wpdb->get_col(
-			$wpdb->prepare(
-				'SELECT customer_id FROM %i WHERE product_id = %d',
-				$wpdb->prefix . 'dpv_customer_visibility',
-				$product_id
-			)
-		);
-
-		// Get customer details for display
-		$customer_details = array();
-		if ( ! empty( $customers ) ) {
-			foreach ( $customers as $customer_id ) {
-				$user = get_userdata( $customer_id );
-				if ( $user ) {
-					$customer_details[] = array(
-						'id'   => $customer_id,
-						'text' => $user->display_name . ' (' . $user->user_email . ')',
-					);
-				}
-			}
-		}
-
-		wp_send_json_success(
-			array(
-				'restriction_mode' => $restriction_mode,
-				'roles'            => $roles,
-				'customers'        => $customer_details,
-			)
-		);
 	}
 }

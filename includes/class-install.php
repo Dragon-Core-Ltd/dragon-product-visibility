@@ -111,15 +111,12 @@ class Install {
 	}
 
 	/**
-	 * Create default options
+	 * Create default options. Settings rows created by earlier versions are left
+	 * in place.
 	 */
 	private static function create_options(): void {
 		$default_options = array(
-			'dragonproductvisibility_version'                       => DRAGONPRODUCTVISIBILITY_VERSION,
-			'dragonproductvisibility_restriction_mode'              => 'whitelist',
-			'dragonproductvisibility_hide_restricted_completely'    => 'yes',
-			'dragonproductvisibility_show_message_on_direct_access' => 'yes',
-			'dragonproductvisibility_restricted_redirect'           => 'shop',
+			'dragonproductvisibility_version' => DRAGONPRODUCTVISIBILITY_VERSION,
 		);
 
 		foreach ( $default_options as $key => $value ) {

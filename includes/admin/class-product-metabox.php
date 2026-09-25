@@ -71,6 +71,32 @@ class Product_Metabox {
 	}
 
 	/**
+	 * Labels ("Name (email)") for the customers on a product's list, keyed by
+	 * user ID.
+	 *
+	 * Email addresses are shown only to users the customer search would serve
+	 * (manage_woocommerce or list_users); anyone else gets null and sees a count.
+	 *
+	 * @param int[] $customer_ids Customer user IDs.
+	 * @return array<int, string>|null
+	 */
+	public static function selected_customer_labels( array $customer_ids ): ?array {
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'list_users' ) ) {
+			return null;
+		}
+
+		$labels = array();
+		foreach ( $customer_ids as $customer_id ) {
+			$user = get_userdata( (int) $customer_id );
+			if ( $user ) {
+				$labels[ (int) $customer_id ] = $user->display_name . ' (' . $user->user_email . ')';
+			}
+		}
+
+		return $labels;
+	}
+
+	/**
 	 * Add tab content
 	 */
 	public function add_tab_content(): void {
@@ -85,30 +111,26 @@ class Product_Metabox {
 
 		// Get customers from database
 		global $wpdb;
-		$table_name         = $wpdb->prefix . 'dpv_customer_visibility';
-		$selected_customers = array();
+		$table_name   = $wpdb->prefix . 'dpv_customer_visibility';
+		$customer_ids = array();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Checking table existence.
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Loading saved customers.
-			$customer_ids = $wpdb->get_col(
-				$wpdb->prepare(
-					'SELECT customer_id FROM %i WHERE product_id = %d',
-					$table_name,
-					$post->ID
+			$customer_ids = array_map(
+				'absint',
+				(array) $wpdb->get_col(
+					$wpdb->prepare(
+						'SELECT customer_id FROM %i WHERE product_id = %d',
+						$table_name,
+						$post->ID
+					)
 				)
 			);
-
-			foreach ( $customer_ids as $customer_id ) {
-				$user = get_userdata( $customer_id );
-				if ( $user ) {
-					$selected_customers[] = array(
-						'id'   => $customer_id,
-						'text' => $user->display_name . ' (' . $user->user_email . ')',
-					);
-				}
-			}
 		}
+
+		// Null when this user may not see customer email addresses.
+		$selected_customers = self::selected_customer_labels( $customer_ids );
 
 		// Get all available roles
 		$all_roles = Admin::get_all_roles();
@@ -159,13 +181,34 @@ class Product_Metabox {
 							<span class="dpv-whitelist-text" <?php echo ( 'blacklist' === $restriction_mode ) ? 'style="display:none;"' : ''; ?>><?php esc_html_e( 'Allowed Customers', 'dragon-product-visibility' ); ?></span>
 							<span class="dpv-blacklist-text" <?php echo ( 'blacklist' !== $restriction_mode ) ? 'style="display:none;"' : ''; ?>><?php esc_html_e( 'Blocked Customers', 'dragon-product-visibility' ); ?></span>
 						</label>
-						<select id="dragonproductvisibility_customers" name="dragonproductvisibility_customers[]" class="dpv-customer-select" multiple="multiple" style="width: 100%;">
-							<?php foreach ( $selected_customers as $customer ) : ?>
-								<option value="<?php echo esc_attr( $customer['id'] ); ?>" selected="selected">
-									<?php echo esc_html( $customer['text'] ); ?>
-								</option>
+						<?php if ( null !== $selected_customers ) : ?>
+							<select id="dragonproductvisibility_customers" name="dragonproductvisibility_customers[]" class="dpv-customer-select" multiple="multiple" style="width: 100%;">
+								<?php foreach ( $selected_customers as $customer_id => $customer_label ) : ?>
+									<option value="<?php echo esc_attr( $customer_id ); ?>" selected="selected">
+										<?php echo esc_html( $customer_label ); ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+						<?php else : ?>
+							<?php
+							// The saved list travels with the form unchanged, so saving the
+							// product keeps it.
+							foreach ( $customer_ids as $customer_id ) :
+								?>
+								<input type="hidden" name="dragonproductvisibility_customers[]" value="<?php echo esc_attr( $customer_id ); ?>" />
 							<?php endforeach; ?>
-						</select>
+							<span id="dragonproductvisibility_customers">
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: %s: number of customers on this product's list. */
+										_n( '%s customer selected.', '%s customers selected.', count( $customer_ids ), 'dragon-product-visibility' ),
+										number_format_i18n( count( $customer_ids ) )
+									)
+								);
+								?>
+							</span>
+						<?php endif; ?>
 					</p>
 				</div>
 

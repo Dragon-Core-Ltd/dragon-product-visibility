@@ -9,6 +9,7 @@
  */
 
 defined( 'ABSPATH' ) || define( 'ABSPATH', __DIR__ . '/' );
+defined( 'OBJECT' ) || define( 'OBJECT', 'OBJECT' );
 defined( 'MINUTE_IN_SECONDS' ) || define( 'MINUTE_IN_SECONDS', 60 );
 defined( 'DRAGONPRODUCTVISIBILITY_VERSION' ) || define( 'DRAGONPRODUCTVISIBILITY_VERSION', '9.9.9-test' );
 defined( 'DRAGONPRODUCTVISIBILITY_PLUGIN_PATH' ) || define( 'DRAGONPRODUCTVISIBILITY_PLUGIN_PATH', dirname( __DIR__ ) . '/' );
@@ -31,6 +32,29 @@ final class Dpv_Test_Json_Sent extends \RuntimeException {
 }
 
 /**
+ * WC_Session_Handler double: whether the visitor already has a session cookie,
+ * and whether one was asked for.
+ */
+final class Dpv_Test_Wc_Session {
+	public bool $cookie     = false;
+	public bool $cookie_set = false;
+
+	public function has_session() {
+		return $this->cookie || $this->cookie_set;
+	}
+
+	public function set_customer_session_cookie( $set ) {
+		if ( $set ) {
+			$this->cookie_set = true;
+		}
+	}
+}
+
+function WC() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid -- WooCommerce's own function name.
+	return $GLOBALS['dpv_test_wc'];
+}
+
+/**
  * Reset every store and install a fresh fake $wpdb. Called from setUp().
  */
 function dpv_test_reset(): \DragonProductVisibility\Tests\Fake_Wpdb {
@@ -49,6 +73,20 @@ function dpv_test_reset(): \DragonProductVisibility\Tests\Fake_Wpdb {
 	$GLOBALS['dpv_test_posts']             = array();
 	$GLOBALS['dpv_test_filters']           = array();
 	$GLOBALS['dpv_test_get_post_meta']     = 0;
+	$GLOBALS['dpv_test_actions']           = array();
+	$GLOBALS['dpv_test_is_admin']          = false;
+	$GLOBALS['dpv_test_doing_ajax']        = false;
+	$GLOBALS['dpv_test_user_roles']        = array( 'customer' );
+	$GLOBALS['dpv_test_notices']           = array();
+	$GLOBALS['dpv_test_wc']                = (object) array( 'session' => new Dpv_Test_Wc_Session() );
+	$GLOBALS['dpv_test_comments']          = array();
+	$GLOBALS['dpv_test_skus']              = array();
+	$GLOBALS['dpv_test_is_product']        = false;
+	$GLOBALS['dpv_test_is_attachment']     = false;
+	$GLOBALS['dpv_test_status_header']     = null;
+	$GLOBALS['shortcode_tags']             = array();
+	$GLOBALS['post']                       = null;
+	$GLOBALS['wp_query']                   = null;
 	$_POST                                 = array();
 	$_GET                                  = array();
 	return $GLOBALS['wpdb'];
@@ -144,19 +182,318 @@ function wp_unslash( $value ) {
 	return is_string( $value ) ? stripslashes( $value ) : $value;
 }
 
-function add_action( ...$args ) {
-	unset( $args );
+function add_action( $tag, $callback, $priority = 10, $accepted_args = 1 ) {
+	$GLOBALS['dpv_test_actions'][] = array( $tag, $callback, $priority, $accepted_args );
 	return true;
 }
 
-function add_filter( $tag, $callback, ...$args ) {
-	unset( $args );
+function add_filter( $tag, $callback, $priority = 10, $accepted_args = 1 ) {
 	$GLOBALS['dpv_test_filters'][ $tag ][] = $callback;
+	$GLOBALS['dpv_test_actions'][]         = array( $tag, $callback, $priority, $accepted_args );
 	return true;
+}
+
+function apply_filters( $tag, $value, ...$args ) {
+	unset( $tag, $args );
+	return $value;
+}
+
+function is_admin() {
+	return (bool) $GLOBALS['dpv_test_is_admin'];
+}
+
+function wp_doing_ajax() {
+	return (bool) ( $GLOBALS['dpv_test_doing_ajax'] ?? false );
+}
+
+function wc_add_notice( $message, $type = 'success' ) {
+	$GLOBALS['dpv_test_notices'][] = array( $message, $type );
+}
+
+function get_userdata( $user_id ) {
+	return $user_id ? (object) array(
+		'ID'           => (int) $user_id,
+		'roles'        => $GLOBALS['dpv_test_user_roles'],
+		'display_name' => 'Customer ' . (int) $user_id,
+		'user_email'   => 'customer' . (int) $user_id . '@example.com',
+	) : false;
+}
+
+function wp_get_current_user() {
+	$user = get_userdata( get_current_user_id() );
+	return $user ? $user : (object) array(
+		'ID'    => 0,
+		'roles' => array(),
+	);
+}
+
+function get_the_terms( $post, $taxonomy ) {
+	unset( $post, $taxonomy );
+	return false;
+}
+
+function get_ancestors( $object_id = 0, $object_type = '', $resource_type = '' ) {
+	unset( $object_id, $object_type, $resource_type );
+	return array();
+}
+
+function update_meta_cache( $meta_type, $object_ids ) {
+	unset( $meta_type, $object_ids );
+	return array();
+}
+
+function update_object_term_cache( $object_ids, $object_type ) {
+	unset( $object_ids, $object_type );
+	return null;
+}
+
+function get_posts( $args = null ) {
+	unset( $args );
+	return array();
+}
+
+/**
+ * Mirrors core's sanitize_title_with_dashes() for ASCII input: disallowed
+ * characters (a slash included) are dropped, whitespace becomes a dash, and
+ * dash runs collapse.
+ */
+function sanitize_title( $title ) {
+	$title = strtolower( (string) $title );
+	$title = (string) preg_replace( '/[^%a-z0-9 _-]/', '', $title );
+	$title = (string) preg_replace( '/\s+/', '-', $title );
+	$title = (string) preg_replace( '|-+|', '-', $title );
+	return trim( $title, '-' );
+}
+
+/**
+ * Mirrors core: the post of the given type whose post_name is the path.
+ */
+function get_page_by_path( $page_path, $output = 'OBJECT', $post_type = 'page' ) {
+	unset( $output );
+	foreach ( $GLOBALS['dpv_test_posts'] as $post ) {
+		if ( ( $post->post_name ?? '' ) === $page_path && $post->post_type === $post_type ) {
+			return $post;
+		}
+	}
+	return null;
+}
+
+/**
+ * Mirrors core: a list from an array or a comma/space separated string.
+ */
+function wp_parse_list( $input_list ): array {
+	if ( ! is_array( $input_list ) ) {
+		$parsed_list = preg_split( '/[\s,]+/', (string) $input_list, -1, PREG_SPLIT_NO_EMPTY );
+		return is_array( $parsed_list ) ? $parsed_list : array();
+	}
+	return array_filter( $input_list, 'is_scalar' );
+}
+
+/**
+ * Mirrors core: unique absint IDs (keys preserved, as array_unique does).
+ */
+function wp_parse_id_list( $input_list ): array {
+	return array_unique( array_map( 'absint', wp_parse_list( $input_list ) ) );
+}
+
+function is_wp_error( $thing ) {
+	return $thing instanceof \WP_Error;
+}
+
+// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound
+
+/**
+ * WP_Error double.
+ */
+class WP_Error {
+	public $code;
+	public $message;
+	public $data;
+
+	public function __construct( $code = '', $message = '', $data = '' ) {
+		$this->code    = $code;
+		$this->message = $message;
+		$this->data    = $data;
+	}
+}
+
+/**
+ * WP_REST_Request double: a route plus URL and query-string params, read in
+ * core's default parameter order (GET before URL).
+ */
+class WP_REST_Request {
+	private string $route;
+	private string $method;
+	private array $params = array(
+		'GET' => array(),
+		'URL' => array(),
+	);
+
+	public function __construct( $method = '', $route = '' ) {
+		$this->method = strtoupper( (string) $method );
+		$this->route  = (string) $route;
+	}
+
+	public function get_route() {
+		return $this->route;
+	}
+
+	public function get_method() {
+		return $this->method;
+	}
+
+	public function set_url_params( $params ) {
+		$this->params['URL'] = (array) $params;
+	}
+
+	public function set_query_params( $params ) {
+		$this->params['GET'] = (array) $params;
+	}
+
+	public function get_param( $key ) {
+		foreach ( array( 'GET', 'URL' ) as $type ) {
+			if ( isset( $this->params[ $type ][ $key ] ) ) {
+				return $this->params[ $type ][ $key ];
+			}
+		}
+		return null;
+	}
+}
+
+/**
+ * Stand-in for core's posts controller, so a handler can name it.
+ */
+class WP_REST_Posts_Controller {
+	public function get_item( $request ) {
+		return $request;
+	}
+}
+
+/**
+ * Stand-in for core's attachments controller (a posts controller subclass).
+ */
+class WP_REST_Attachments_Controller extends WP_REST_Posts_Controller {
+}
+
+/**
+ * Stand-in for core's comments controller.
+ */
+class WP_REST_Comments_Controller {
+	public function get_item( $request ) {
+		return $request;
+	}
+}
+
+/**
+ * WC_Product double: just an ID.
+ */
+class WC_Product {
+	private int $id;
+
+	public function __construct( $id = 0 ) {
+		$this->id = (int) $id;
+	}
+
+	public function get_id() {
+		return $this->id;
+	}
+}
+
+/**
+ * WP_Comment_Query double: only the query vars pre_get_comments sees.
+ */
+class WP_Comment_Query {
+	public array $query_vars = array();
+
+	public function __construct( array $vars = array() ) {
+		$this->query_vars = $vars;
+	}
+}
+
+/**
+ * WP_Query double: query vars plus the flags parse_query() would have set.
+ */
+class WP_Query {
+	public array $query_vars = array();
+	public bool $main        = false;
+	public bool $is_singular = false;
+	public bool $is_search   = false;
+	public bool $is_404      = false;
+
+	public function __construct( array $vars = array() ) {
+		// parse_query() runs fill_query_vars() before pre_get_posts, which turns
+		// every missing list var into an empty array.
+		$lists = array( 'post__in', 'post__not_in', 'post_parent__in', 'post_parent__not_in', 'post_name__in', 'author__in', 'author__not_in', 'category__in', 'category__not_in', 'tag__in', 'tag__not_in' );
+		foreach ( $lists as $key ) {
+			$vars[ $key ] = $vars[ $key ] ?? array();
+		}
+		$this->query_vars = $vars;
+	}
+
+	public function get( $key, $default_value = '' ) {
+		return $this->query_vars[ $key ] ?? $default_value;
+	}
+
+	public function set( $key, $value ) {
+		$this->query_vars[ $key ] = $value;
+	}
+
+	public function is_main_query() {
+		return $this->main;
+	}
+
+	public function is_singular( $post_types = '' ) {
+		unset( $post_types );
+		return $this->is_singular;
+	}
+
+	public function is_search() {
+		return $this->is_search;
+	}
+
+	public function set_404() {
+		$this->is_404      = true;
+		$this->is_singular = false;
+	}
 }
 
 function add_query_arg( $key, $value, $url ) {
 	return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . $key . '=' . $value;
+}
+
+/**
+ * Mirrors core: the comment object, or null when there is none.
+ */
+function get_comment( $comment = null, $output = 'OBJECT' ) {
+	unset( $output );
+	if ( is_object( $comment ) ) {
+		return $comment;
+	}
+	return $GLOBALS['dpv_test_comments'][ (int) $comment ] ?? null;
+}
+
+/**
+ * Mirrors WooCommerce: the product or variation ID for a SKU, 0 when none.
+ */
+function wc_get_product_id_by_sku( $sku ) {
+	return (int) ( $GLOBALS['dpv_test_skus'][ (string) $sku ] ?? 0 );
+}
+
+function is_product() {
+	return (bool) $GLOBALS['dpv_test_is_product'];
+}
+
+function is_attachment( $attachment = '' ) {
+	unset( $attachment );
+	return (bool) $GLOBALS['dpv_test_is_attachment'];
+}
+
+function status_header( $code, $description = '' ) {
+	unset( $description );
+	$GLOBALS['dpv_test_status_header'] = (int) $code;
+}
+
+function nocache_headers() {
 }
 
 function get_post( $post = null ) {
@@ -190,6 +527,15 @@ function get_current_user_id() {
 
 function wp_send_json_success( $data = null ) {
 	throw new Dpv_Test_Json_Sent( true, $data );
+}
+
+function wp_send_json( $response = null ) {
+	throw new Dpv_Test_Json_Sent( true, $response );
+}
+
+function get_user_meta( $user_id, $key = '', $single = false ) {
+	unset( $user_id, $key );
+	return $single ? '' : array();
 }
 
 function wp_send_json_error( $data = null ) {
@@ -296,11 +642,13 @@ function dbDelta( $queries ) {
 	return array();
 }
 
+require_once __DIR__ . '/stubs-store-api.php';
 require_once dirname( __DIR__ ) . '/includes/class-install.php';
 require_once dirname( __DIR__ ) . '/includes/class-bulk-rules.php';
 if ( file_exists( dirname( __DIR__ ) . '/includes/class-customer-visibility.php' ) ) {
 	require_once dirname( __DIR__ ) . '/includes/class-customer-visibility.php';
 }
+require_once dirname( __DIR__ ) . '/includes/class-visibility-filter.php';
 require_once dirname( __DIR__ ) . '/includes/class-ajax.php';
 require_once dirname( __DIR__ ) . '/includes/admin/class-product-metabox.php';
 require_once dirname( __DIR__ ) . '/includes/admin/class-admin.php';

@@ -23,7 +23,6 @@ coverage/
 .phpunit.result.cache
 
 # Dev config
-phpcs.xml.dist
 composer.lock
 package-lock.json
 

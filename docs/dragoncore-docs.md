@@ -5,6 +5,10 @@ Per-customer and per-role product visibility for WooCommerce — hide products f
 ## Usage
 Edit any product and find the **Visibility** box: choose specific customers and/or roles who may see it. Hidden products disappear from the shop, search, archives and direct URLs for everyone else.
 
+Variable products are covered as a whole: a variation of a hidden product is hidden as well, including in the WooCommerce Store API's variation listings and single-variation lookups, and it cannot be added to the cart. A visitor who opens a hidden product's URL is sent to the shop page with a notice.
+
+Searching for customers on the product screen shows account names and email addresses, so it requires the `manage_woocommerce` or `list_users` capability.
+
 ## Typical setups
 - **Wholesale items** visible only to a "wholesale" role.
 - **Client-specific products** visible only to that client's account.

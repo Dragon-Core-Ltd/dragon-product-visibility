@@ -111,4 +111,66 @@ final class AjaxTest extends TestCase {
 		$this->assertStringContainsString( '2 listed customers', $sent->data['message'] );
 		$this->assertSame( array( 5, 7 ), $sent->data['stored']['customers'] );
 	}
+
+	private function registered_actions(): array {
+		$GLOBALS['dpv_test_actions'] = array();
+		$ajax                        = ( new \ReflectionClass( Ajax::class ) )->newInstanceWithoutConstructor();
+		$constructor                 = new \ReflectionMethod( Ajax::class, '__construct' );
+		$constructor->setAccessible( true );
+		$constructor->invoke( $ajax );
+
+		return array_column( $GLOBALS['dpv_test_actions'], 0 );
+	}
+
+	public function test_unused_rules_read_endpoint_is_not_registered(): void {
+		$actions = $this->registered_actions();
+
+		// It returned any product's customer names and emails to anyone who can
+		// edit products, and nothing in the plugin called it.
+		$this->assertNotContains( 'wp_ajax_dragonproductvisibility_get_visibility_rules', $actions );
+		$this->assertContains( 'wp_ajax_dragonproductvisibility_search_customers', $actions );
+		$this->assertFalse( method_exists( Ajax::class, 'get_visibility_rules' ) );
+	}
+
+	private function run_search(): \Dpv_Test_Json_Sent {
+		$_REQUEST = array(
+			'nonce'       => 'valid',
+			'search_term' => 'ann',
+		);
+		try {
+			Ajax::instance()->search_customers();
+		} catch ( \Dpv_Test_Json_Sent $sent ) {
+			return $sent;
+		} finally {
+			$_REQUEST = array();
+		}
+		$this->fail( 'handler did not send a JSON response' );
+	}
+
+	public function test_customer_search_refuses_a_product_editor_who_cannot_list_users(): void {
+		$GLOBALS['dpv_test_can'] = static function ( $cap ) {
+			return 'edit_products' === $cap;
+		};
+
+		$sent = $this->run_search();
+
+		$this->assertFalse( $sent->success, 'every customer email must not be readable with only edit_products' );
+		$this->assertSame( 0, $this->wpdb->get_results_calls );
+	}
+
+	public function test_customer_search_allows_a_user_who_can_list_users(): void {
+		$GLOBALS['dpv_test_can'] = static function ( $cap ) {
+			return in_array( $cap, array( 'edit_products', 'list_users' ), true );
+		};
+
+		$this->assertTrue( $this->run_search()->success );
+	}
+
+	public function test_customer_search_allows_a_shop_manager(): void {
+		$GLOBALS['dpv_test_can'] = static function ( $cap ) {
+			return in_array( $cap, array( 'edit_products', 'manage_woocommerce' ), true );
+		};
+
+		$this->assertTrue( $this->run_search()->success );
+	}
 }

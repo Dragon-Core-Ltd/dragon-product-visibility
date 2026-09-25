@@ -82,4 +82,21 @@ final class InstallTest extends TestCase {
 		Install::maybe_upgrade();
 		$this->assertSame( 2, $GLOBALS['dpv_test_dbdelta_calls'], 'a current db version must not re-run dbDelta' );
 	}
+
+	public function test_activation_does_not_create_options_nothing_reads(): void {
+		Install::activate();
+
+		$this->assertSame( DRAGONPRODUCTVISIBILITY_VERSION, get_option( 'dragonproductvisibility_version' ) );
+		foreach ( array( 'restriction_mode', 'hide_restricted_completely', 'show_message_on_direct_access', 'restricted_redirect' ) as $name ) {
+			$this->assertFalse( get_option( 'dragonproductvisibility_' . $name ), $name . ' is never read, so it must not be created' );
+		}
+	}
+
+	public function test_activation_leaves_existing_unused_option_rows_alone(): void {
+		update_option( 'dragonproductvisibility_restricted_redirect', 'shop' );
+
+		Install::activate();
+
+		$this->assertSame( 'shop', get_option( 'dragonproductvisibility_restricted_redirect' ) );
+	}
 }

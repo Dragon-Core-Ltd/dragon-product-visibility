@@ -15,6 +15,10 @@ final class Fake_Wpdb {
 
 	public string $postmeta = 'wp_postmeta';
 
+	public string $posts = 'wp_posts';
+
+	public string $users = 'wp_users';
+
 	/** When false, START TRANSACTION / ROLLBACK are accepted but do nothing (MyISAM). */
 	public bool $transactions_supported = true;
 
@@ -146,6 +150,14 @@ final class Fake_Wpdb {
 		if ( preg_match( "/FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE\\(\\) AND TABLE_NAME = '([^']+)'/", $sql, $m ) ) {
 			return array_key_exists( $m[1], $this->engines ) ? $this->engines[ $m[1] ] : $this->default_engine;
 		}
+		if ( preg_match( "/SELECT ID FROM wp_posts WHERE post_name = '([^']*)' AND post_type = 'product_variation'/", $sql, $m ) ) {
+			foreach ( $GLOBALS['dpv_test_posts'] as $post ) {
+				if ( ( $post->post_name ?? '' ) === $m[1] && 'product_variation' === $post->post_type ) {
+					return (string) $post->ID;
+				}
+			}
+			return null;
+		}
 		if ( preg_match( "/FROM wp_postmeta WHERE post_id = (\\d+) AND meta_key = '([^']+)'/", $sql, $m ) ) {
 			$value = $GLOBALS['dpv_test_meta'][ (int) $m[1] ][ $m[2] ] ?? null;
 			return null === $value ? null : \maybe_serialize( $value );
@@ -173,7 +185,37 @@ final class Fake_Wpdb {
 			}
 			return $out;
 		}
+		if ( preg_match( '/SELECT product_id FROM `([^`]+)` WHERE customer_id = (\\d+)/', $sql, $m ) ) {
+			$out = array();
+			foreach ( $this->rows[ $m[1] ] ?? array() as $row ) {
+				if ( (int) $row['customer_id'] === (int) $m[2] ) {
+					$out[] = (string) $row['product_id'];
+				}
+			}
+			return $out;
+		}
+		if ( false !== strpos( $sql, "SELECT DISTINCT post_id FROM wp_postmeta" ) && false !== strpos( $sql, '_dpv_restriction_mode' ) ) {
+			$out = array();
+			foreach ( $GLOBALS['dpv_test_meta'] as $post_id => $meta ) {
+				if ( in_array( $meta['_dpv_restriction_mode'] ?? null, array( 'whitelist', 'blacklist' ), true ) ) {
+					$out[] = (string) $post_id;
+				}
+			}
+			return $out;
+		}
 		return array();
+	}
+
+	public int $get_results_calls = 0;
+
+	public function get_results( string $sql ): array {
+		unset( $sql );
+		++$this->get_results_calls;
+		return array();
+	}
+
+	public function esc_like( string $text ): string {
+		return addcslashes( $text, '_%\\' );
 	}
 
 	public function get_charset_collate(): string {

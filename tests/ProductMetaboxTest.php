@@ -85,4 +85,24 @@ final class ProductMetaboxTest extends TestCase {
 		$this->assertSame( 1, count( array_keys( $this->wpdb->queries, 'START TRANSACTION', true ) ), 'the generic and type-specific WooCommerce hooks must not save twice' );
 		$this->assertStringContainsString( 'dragonproductvisibility_save_error=1', $this->redirect_location( 'post.php?post=10' ) );
 	}
+
+	public function test_customer_emails_are_shown_to_users_who_can_list_users(): void {
+		$GLOBALS['dpv_test_can'] = static function ( $cap ) {
+			return in_array( $cap, array( 'edit_products', 'list_users' ), true );
+		};
+
+		$labels = Product_Metabox::selected_customer_labels( array( 5 ) );
+
+		$this->assertSame( array( 5 => 'Customer 5 (customer5@example.com)' ), $labels );
+	}
+
+	public function test_customer_emails_are_withheld_from_users_who_can_only_edit_products(): void {
+		// The customer search AJAX already refuses these users; the saved list on
+		// the product screen must not hand them the same addresses.
+		$GLOBALS['dpv_test_can'] = static function ( $cap ) {
+			return 'edit_products' === $cap;
+		};
+
+		$this->assertNull( Product_Metabox::selected_customer_labels( array( 5 ) ) );
+	}
 }

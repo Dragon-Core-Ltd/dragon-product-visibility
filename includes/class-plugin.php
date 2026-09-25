@@ -54,8 +54,15 @@ final class Plugin {
 	 * update. Database tables and post/user meta keep their original keys (they
 	 * are matched by exact name and are not covered by the naming rule), so no
 	 * per-row product data is touched.
+	 *
+	 * Runs once: a done flag (autoloaded, so reading it costs no query) stops
+	 * the legacy lookups repeating on every request.
 	 */
 	private static function migrate_legacy_prefix(): void {
+		if ( get_option( 'dragonproductvisibility_legacy_prefix_migrated' ) ) {
+			return;
+		}
+
 		// db_version is a schema marker managed by activation, not user data.
 		delete_option( 'dpv_db_version' );
 
@@ -78,6 +85,8 @@ final class Plugin {
 				delete_option( 'dpv_' . $name );
 			}
 		}
+
+		update_option( 'dragonproductvisibility_legacy_prefix_migrated', 1, true );
 	}
 
 	/**

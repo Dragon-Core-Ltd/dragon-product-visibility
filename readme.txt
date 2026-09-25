@@ -61,7 +61,7 @@ Dragon Product Visibility lets you control which customers can see and purchase 
 
 = Does this work with variable products? =
 
-Yes! Restrictions apply to the entire product including all variations.
+Yes. Restrictions apply to the entire product including all variations. A variation of a hidden product is hidden too, wherever it could be reached: variation listings and single-variation lookups in the WooCommerce Store API, and adding the variation to the cart.
 
 = Can I restrict by user role? =
 
@@ -88,7 +88,11 @@ For blacklist mode: Yes, guests can see the product unless you specifically need
 
 = Does this affect product feeds or APIs? =
 
-The plugin filters WooCommerce's standard product queries. REST API access depends on the authentication context.
+The plugin filters WooCommerce's standard product queries, the core product sitemap and the public WooCommerce Store API (`/wp-json/wc/store/`), including its variation listings and single-product and single-variation lookups by ID or slug. The authenticated WooCommerce REST API (`/wp-json/wc/v3/`) is meant for shop staff; shop managers and administrators always see every product.
+
+= Who can search for customers when setting up a product? =
+
+The customer search on the product screen returns account names and email addresses, so it needs the `manage_woocommerce` capability (shop managers and administrators) or the `list_users` capability, as well as permission to edit products.
 
 = Is this compatible with HPOS (High-Performance Order Storage)? =
 
