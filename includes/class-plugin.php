@@ -126,6 +126,18 @@ final class Plugin {
 	 * Initialize plugin
 	 */
 	public function init(): void {
+		// Schema upgrades do not depend on WooCommerce.
+		if ( is_admin() ) {
+			Install::maybe_upgrade();
+		}
+
+		// Without WooCommerce loaded (inactive, or switched off for a single
+		// request by a profiler) there are no products to filter, and every
+		// WooCommerce function and class the filters call is undefined.
+		if ( ! self::woocommerce_loaded() ) {
+			return;
+		}
+
 		// Initialize visibility filter (frontend).
 		if ( ! is_admin() || wp_doing_ajax() ) {
 			Visibility_Filter::instance();
@@ -136,7 +148,6 @@ final class Plugin {
 
 		// Initialize admin.
 		if ( is_admin() ) {
-			Install::maybe_upgrade();
 			Admin::instance();
 			Product_Metabox::instance();
 			Bulk_Rules_Admin::instance();
@@ -144,11 +155,18 @@ final class Plugin {
 	}
 
 	/**
+	 * Whether WooCommerce is loaded in this request.
+	 */
+	public static function woocommerce_loaded(): bool {
+		return class_exists( 'WooCommerce', false ) && function_exists( 'WC' );
+	}
+
+	/**
 	 * Check if WooCommerce is active
 	 */
 	public function check_woocommerce(): void {
 		// Don't show if WooCommerce is active.
-		if ( class_exists( 'WooCommerce' ) ) {
+		if ( self::woocommerce_loaded() ) {
 			return;
 		}
 

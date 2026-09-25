@@ -32,29 +32,6 @@ final class Dpv_Test_Json_Sent extends \RuntimeException {
 }
 
 /**
- * WC_Session_Handler double: whether the visitor already has a session cookie,
- * and whether one was asked for.
- */
-final class Dpv_Test_Wc_Session {
-	public bool $cookie     = false;
-	public bool $cookie_set = false;
-
-	public function has_session() {
-		return $this->cookie || $this->cookie_set;
-	}
-
-	public function set_customer_session_cookie( $set ) {
-		if ( $set ) {
-			$this->cookie_set = true;
-		}
-	}
-}
-
-function WC() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid -- WooCommerce's own function name.
-	return $GLOBALS['dpv_test_wc'];
-}
-
-/**
  * Reset every store and install a fresh fake $wpdb. Called from setUp().
  */
 function dpv_test_reset(): \DragonProductVisibility\Tests\Fake_Wpdb {
@@ -78,7 +55,7 @@ function dpv_test_reset(): \DragonProductVisibility\Tests\Fake_Wpdb {
 	$GLOBALS['dpv_test_doing_ajax']        = false;
 	$GLOBALS['dpv_test_user_roles']        = array( 'customer' );
 	$GLOBALS['dpv_test_notices']           = array();
-	$GLOBALS['dpv_test_wc']                = (object) array( 'session' => new Dpv_Test_Wc_Session() );
+	$GLOBALS['dpv_test_wc']                = class_exists( 'Dpv_Test_Wc_Session', false ) ? (object) array( 'session' => new Dpv_Test_Wc_Session() ) : null;
 	$GLOBALS['dpv_test_comments']          = array();
 	$GLOBALS['dpv_test_skus']              = array();
 	$GLOBALS['dpv_test_is_product']        = false;
@@ -204,10 +181,6 @@ function is_admin() {
 
 function wp_doing_ajax() {
 	return (bool) ( $GLOBALS['dpv_test_doing_ajax'] ?? false );
-}
-
-function wc_add_notice( $message, $type = 'success' ) {
-	$GLOBALS['dpv_test_notices'][] = array( $message, $type );
 }
 
 function get_userdata( $user_id ) {
@@ -385,21 +358,6 @@ class WP_REST_Comments_Controller {
 }
 
 /**
- * WC_Product double: just an ID.
- */
-class WC_Product {
-	private int $id;
-
-	public function __construct( $id = 0 ) {
-		$this->id = (int) $id;
-	}
-
-	public function get_id() {
-		return $this->id;
-	}
-}
-
-/**
  * WP_Comment_Query double: only the query vars pre_get_comments sees.
  */
 class WP_Comment_Query {
@@ -470,17 +428,6 @@ function get_comment( $comment = null, $output = 'OBJECT' ) {
 		return $comment;
 	}
 	return $GLOBALS['dpv_test_comments'][ (int) $comment ] ?? null;
-}
-
-/**
- * Mirrors WooCommerce: the product or variation ID for a SKU, 0 when none.
- */
-function wc_get_product_id_by_sku( $sku ) {
-	return (int) ( $GLOBALS['dpv_test_skus'][ (string) $sku ] ?? 0 );
-}
-
-function is_product() {
-	return (bool) $GLOBALS['dpv_test_is_product'];
 }
 
 function is_attachment( $attachment = '' ) {
@@ -642,7 +589,12 @@ function dbDelta( $queries ) {
 	return array();
 }
 
-require_once __DIR__ . '/stubs-store-api.php';
+// WooCommerce's own functions and classes. DPV_TEST_WITHOUT_WOOCOMMERCE leaves
+// them undefined, as in a request where WooCommerce is not loaded.
+if ( ! getenv( 'DPV_TEST_WITHOUT_WOOCOMMERCE' ) ) {
+	require_once __DIR__ . '/stubs-woocommerce.php';
+	require_once __DIR__ . '/stubs-store-api.php';
+}
 require_once dirname( __DIR__ ) . '/includes/class-install.php';
 require_once dirname( __DIR__ ) . '/includes/class-bulk-rules.php';
 if ( file_exists( dirname( __DIR__ ) . '/includes/class-customer-visibility.php' ) ) {

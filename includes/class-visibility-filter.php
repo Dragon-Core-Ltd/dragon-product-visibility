@@ -196,7 +196,7 @@ class Visibility_Filter {
 			return;
 		}
 
-		if ( ! is_product() ) {
+		if ( ! function_exists( 'is_product' ) || ! is_product() ) {
 			return;
 		}
 
@@ -1070,10 +1070,12 @@ class Visibility_Filter {
 		$variation_id = absint( $variation_id );
 
 		if ( ! $this->user_can_view_product( $product_id ) || ( $variation_id > 0 && ! $this->user_can_view_product( $variation_id ) ) ) {
-			wc_add_notice(
-				__( 'Sorry, you cannot purchase this product.', 'dragon-product-visibility' ),
-				'error'
-			);
+			if ( function_exists( 'wc_add_notice' ) ) {
+				wc_add_notice(
+					__( 'Sorry, you cannot purchase this product.', 'dragon-product-visibility' ),
+					'error'
+				);
+			}
 			return false;
 		}
 
@@ -1084,7 +1086,7 @@ class Visibility_Filter {
 	 * Validate cart items on cart/checkout pages
 	 */
 	public function validate_cart_items(): void {
-		if ( ! WC()->cart ) {
+		if ( ! function_exists( 'WC' ) || ! function_exists( 'wc_add_notice' ) || ! WC()->cart ) {
 			return;
 		}
 
@@ -1094,7 +1096,7 @@ class Visibility_Filter {
 			$product_id = $cart_item['product_id'];
 
 			if ( ! $this->user_can_view_product( $product_id ) ) {
-				$product            = wc_get_product( $product_id );
+				$product            = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
 				$restricted_items[] = array(
 					'key'  => $cart_key,
 					'name' => $product ? $product->get_name() : __( 'Product', 'dragon-product-visibility' ),

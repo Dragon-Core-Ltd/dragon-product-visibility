@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-25T02:32:52+00:00\n"
+"POT-Creation-Date: 2026-09-25T04:19:05+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: dragon-product-visibility\n"
@@ -376,11 +376,11 @@ msgstr ""
 msgid "none (no per-product restriction)"
 msgstr ""
 
-#: includes/class-plugin.php:178
+#: includes/class-plugin.php:196
 msgid "Dragon Product Visibility for WooCommerce requires WooCommerce to be installed and active."
 msgstr ""
 
-#: includes/class-plugin.php:179
+#: includes/class-plugin.php:197
 msgid "Dismiss permanently"
 msgstr ""
 
@@ -397,16 +397,16 @@ msgstr ""
 msgid "Invalid comment ID."
 msgstr ""
 
-#: includes/class-visibility-filter.php:1074
+#: includes/class-visibility-filter.php:1075
 msgid "Sorry, you cannot purchase this product."
 msgstr ""
 
-#: includes/class-visibility-filter.php:1100
+#: includes/class-visibility-filter.php:1102
 msgid "Product"
 msgstr ""
 
 #. translators: %s: list of the product names removed from the cart.
-#: includes/class-visibility-filter.php:1115
+#: includes/class-visibility-filter.php:1117
 msgid "%s has been removed from your cart as you no longer have access to purchase it."
 msgid_plural "%s have been removed from your cart as you no longer have access to purchase them."
 msgstr[0] ""
