@@ -19,6 +19,10 @@ final class Fake_Wpdb {
 
 	public string $users = 'wp_users';
 
+	public string $usermeta = 'wp_usermeta';
+
+	public string $options = 'wp_options';
+
 	/** When false, START TRANSACTION / ROLLBACK are accepted but do nothing (MyISAM). */
 	public bool $transactions_supported = true;
 

@@ -1496,7 +1496,8 @@ class Visibility_Filter {
 					'fields'           => 'ids',
 					'posts_per_page'   => -1,
 					'no_found_rows'    => true,
-					'suppress_filters' => true,
+					// get_posts() suppresses query filters by default, so this
+					// plugin's own filters do not run on the internal query.
 					// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Enforcing category/tag visibility inherently requires a taxonomy query; result is cached per request.
 					'tax_query'        => $tax_query,
 				)

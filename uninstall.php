@@ -15,7 +15,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 // Respect the site owner's data: nothing is removed unless they explicitly
 // opted in (the "Delete all data on uninstall" setting). Without the opt-in,
 // tables and options survive so a reinstall picks up exactly where it left off.
-if ( ! get_option( 'dpv_delete_data_on_uninstall' ) ) {
+// Only a clear yes counts: the words false, no and off are truthy strings.
+$dragonproductvisibility_opt_in = get_option( 'dpv_delete_data_on_uninstall' );
+if ( is_string( $dragonproductvisibility_opt_in ) ) {
+	$dragonproductvisibility_opt_in = strtolower( trim( $dragonproductvisibility_opt_in ) );
+}
+if ( ! in_array( $dragonproductvisibility_opt_in, array( true, 1, '1', 'true', 'yes', 'on' ), true ) ) {
 	return;
 }
 

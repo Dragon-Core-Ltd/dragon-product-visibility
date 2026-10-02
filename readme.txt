@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 8.0
 WC requires at least: 7.0
 WC tested up to: 10.4
-Stable tag: 1.0.12
+Stable tag: 1.0.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,9 @@ Yes, the plugin declares HPOS compatibility.
 
 == Changelog ==
 
+= 1.0.13 =
+* Fixed: uninstall deletes data only when the opt-in is clearly on (1, true, yes or on), not for a value set to "false" or "no".
+
 = 1.0.12 =
 * The customer and role pickers only appear when a product is restricted, so rules always take effect.
 * Bulk rules can target every role.
@@ -154,6 +157,9 @@ Yes, the plugin declares HPOS compatibility.
 * WooCommerce blocks support
 
 == Upgrade Notice ==
+
+= 1.0.13 =
+Uninstall deletes data only when the opt-in is clearly on.
 
 = 1.0.12 =
 Rule pickers only show where they take effect.
