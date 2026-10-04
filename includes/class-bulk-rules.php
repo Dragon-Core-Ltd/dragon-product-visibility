@@ -129,7 +129,7 @@ class Bulk_Rules {
 		$term_id  = isset( $rule['term_id'] ) ? (int) $rule['term_id'] : 0;
 		$mode     = isset( $rule['mode'] ) ? (string) $rule['mode'] : '';
 		$roles    = ( isset( $rule['roles'] ) && is_array( $rule['roles'] ) )
-			? array_values( array_unique( array_map( 'sanitize_key', $rule['roles'] ) ) )
+			? array_values( array_unique( Customer_Visibility::role_list( $rule['roles'] ) ) )
 			: array();
 
 		if ( ! in_array( $taxonomy, self::TAXONOMIES, true ) ) {
@@ -167,7 +167,7 @@ class Bulk_Rules {
 	}
 
 	/**
-	 * Whether a rule denies a user who holds the given roles. Pure — no WP calls.
+	 * Whether a rule denies a user who holds the given roles. Pure: no WP calls.
 	 *
 	 * whitelist: only the listed roles may see the term; everyone else (including
 	 * guests, who hold no roles) is denied. blacklist: the listed roles are denied.

@@ -62,49 +62,64 @@ class Ajax {
 			return;
 		}
 
-		global $wpdb;
-
 		$search_term = isset( $_REQUEST['search_term'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['search_term'] ) ) : '';
-		$results     = array();
+
+		// WP_User_Query scopes the accounts to the current site, which matters
+		// on multisite, where the users table holds the whole network.
+		$fields = array( 'ID', 'display_name', 'user_email' );
 
 		if ( strlen( $search_term ) < 1 ) {
 			// Return recent customers if no search term
 			$recent_customers = get_user_meta( get_current_user_id(), 'dpv_recent_customer_searches', true );
 			if ( ! empty( $recent_customers ) && is_array( $recent_customers ) ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- User search query.
-				$users = $wpdb->get_results(
-					$wpdb->prepare(
-						"SELECT ID as id, CONCAT(display_name, ' (', user_email, ')') as text
-                     FROM {$wpdb->users}
-                     WHERE ID IN (" . implode( ',', array_fill( 0, count( $recent_customers ), '%d' ) ) . ')
-                     ORDER BY display_name
-                     LIMIT 10',
-						$recent_customers
+				$query = new \WP_User_Query(
+					array(
+						'include'     => array_map( 'absint', $recent_customers ),
+						'orderby'     => 'display_name',
+						'order'       => 'ASC',
+						'number'      => 10,
+						'fields'      => $fields,
+						'count_total' => false,
 					)
 				);
-				wp_send_json( $users );
+				wp_send_json( self::customer_options( $query->get_results() ) );
 				return;
 			}
 		}
 
 		// Search users by name, email, or login
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- User search query with user input.
-		$users = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT ID as id, CONCAT(display_name, ' (', user_email, ')') as text
-             FROM {$wpdb->users}
-             WHERE user_login LIKE %s
-                OR user_email LIKE %s
-                OR display_name LIKE %s
-             ORDER BY display_name
-             LIMIT 50",
-				'%' . $wpdb->esc_like( $search_term ) . '%',
-				'%' . $wpdb->esc_like( $search_term ) . '%',
-				'%' . $wpdb->esc_like( $search_term ) . '%'
+		$query = new \WP_User_Query(
+			array(
+				'search'         => '*' . $search_term . '*',
+				'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
+				'orderby'        => 'display_name',
+				'order'          => 'ASC',
+				'number'         => 50,
+				'fields'         => $fields,
+				'count_total'    => false,
 			)
 		);
 
-		wp_send_json( $users );
+		wp_send_json( self::customer_options( $query->get_results() ) );
+	}
+
+	/**
+	 * Picker options ({ id, text: "Name (email)" }) for user query rows.
+	 *
+	 * @param array $users Rows with ID, display_name and user_email.
+	 * @return array<int, object>
+	 */
+	private static function customer_options( array $users ): array {
+		$options = array();
+
+		foreach ( $users as $user ) {
+			$options[] = (object) array(
+				'id'   => (string) $user->ID,
+				'text' => $user->display_name . ' (' . $user->user_email . ')',
+			);
+		}
+
+		return $options;
 	}
 
 	/**
@@ -140,8 +155,8 @@ class Ajax {
 
 		// Get submitted data
 		$restriction_mode = isset( $_POST['restriction_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['restriction_mode'] ) ) : 'none';
-		$customer_ids     = isset( $_POST['customer_ids'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['customer_ids'] ) ) : array();
-		$role_ids         = isset( $_POST['role_ids'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['role_ids'] ) ) : array();
+		$customer_ids     = isset( $_POST['customer_ids'] ) ? wp_parse_id_list( map_deep( wp_unslash( $_POST['customer_ids'] ), 'absint' ) ) : array();
+		$role_ids         = isset( $_POST['role_ids'] ) ? Customer_Visibility::role_list( map_deep( wp_unslash( $_POST['role_ids'] ), 'sanitize_text_field' ) ) : array();
 
 		$result = Customer_Visibility::save_rules( $product_id, $restriction_mode, $role_ids, $customer_ids );
 

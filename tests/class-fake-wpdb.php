@@ -23,6 +23,8 @@ final class Fake_Wpdb {
 
 	public string $options = 'wp_options';
 
+	public string $comments = 'wp_comments';
+
 	/** When false, START TRANSACTION / ROLLBACK are accepted but do nothing (MyISAM). */
 	public bool $transactions_supported = true;
 
@@ -67,6 +69,9 @@ final class Fake_Wpdb {
 	 * @var bool
 	 */
 	public bool $fail_get_col = false;
+
+	/** When true, the restriction-mode lookup matches whitelist/blacklist in any case, as a _ci collation does. */
+	public bool $case_insensitive_mode_lookup = false;
 
 	/** @var string[] query() fails when the SQL contains any of these. */
 	public array $fail_query_containing = array();
@@ -201,7 +206,11 @@ final class Fake_Wpdb {
 		if ( false !== strpos( $sql, "SELECT DISTINCT post_id FROM wp_postmeta" ) && false !== strpos( $sql, '_dpv_restriction_mode' ) ) {
 			$out = array();
 			foreach ( $GLOBALS['dpv_test_meta'] as $post_id => $meta ) {
-				if ( in_array( $meta['_dpv_restriction_mode'] ?? null, array( 'whitelist', 'blacklist' ), true ) ) {
+				$mode = $meta['_dpv_restriction_mode'] ?? null;
+				if ( $this->case_insensitive_mode_lookup && is_string( $mode ) ) {
+					$mode = strtolower( $mode );
+				}
+				if ( in_array( $mode, array( 'whitelist', 'blacklist' ), true ) ) {
 					$out[] = (string) $post_id;
 				}
 			}

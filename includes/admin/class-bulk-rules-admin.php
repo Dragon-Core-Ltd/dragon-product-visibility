@@ -1,6 +1,6 @@
 <?php
 /**
- * Bulk Rules admin screen — manage category/tag visibility rules.
+ * Bulk Rules admin screen: manage category/tag visibility rules.
  *
  * @package DragonProductVisibility
  */
@@ -98,7 +98,7 @@ class Bulk_Rules_Admin {
 
 		$mode  = isset( $_POST['dpv_mode'] ) ? sanitize_key( wp_unslash( $_POST['dpv_mode'] ) ) : '';
 		$roles = ( isset( $_POST['dpv_roles'] ) && is_array( $_POST['dpv_roles'] ) )
-			? array_map( 'sanitize_key', wp_unslash( $_POST['dpv_roles'] ) )
+			? Customer_Visibility::role_list( map_deep( wp_unslash( $_POST['dpv_roles'] ), 'sanitize_text_field' ) )
 			: array();
 
 		$roles = self::allowed_roles( $roles );

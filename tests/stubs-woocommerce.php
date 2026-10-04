@@ -37,6 +37,27 @@ function WC() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.Fu
 	return $GLOBALS['dpv_test_wc'];
 }
 
+/**
+ * Mirrors WooCommerce: the permalink of one of its pages.
+ */
+function wc_get_page_permalink( $page, $fallback = null ) {
+	unset( $fallback );
+	return 'https://example.test/' . $page . '/';
+}
+
+/**
+ * Mirrors WooCommerce: the cart page URL.
+ */
+function wc_get_cart_url() {
+	return 'https://example.test/cart/';
+}
+
+/**
+ * WC_Widget double: WooCommerce's base class for its widgets.
+ */
+class WC_Widget {
+}
+
 function wc_add_notice( $message, $type = 'success' ) {
 	$GLOBALS['dpv_test_notices'][] = array( $message, $type );
 }

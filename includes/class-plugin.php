@@ -74,7 +74,7 @@ final class Plugin {
 			'restricted_redirect',
 		);
 
-		// Copy each legacy value onto the new name, then remove the legacy copy —
+		// Copy each legacy value onto the new name, then remove the legacy copy,
 		// per option, with no shared db_version guard, so the settings are carried
 		// even on a deactivate/reactivate update (where activation would otherwise
 		// re-stamp the new db_version before the copy could run).

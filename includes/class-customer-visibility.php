@@ -45,6 +45,27 @@ class Customer_Visibility {
 	}
 
 	/**
+	 * A flat list of role keys from a submitted or stored value.
+	 *
+	 * A single key becomes a one-item list. An entry that is itself a list
+	 * carries no role key and becomes an empty string. Keys are not altered:
+	 * a role is matched by its exact id, which other plugins may register with
+	 * capitals, spaces or dots.
+	 *
+	 * @param mixed $roles Role keys.
+	 * @return string[]
+	 */
+	public static function role_list( $roles ): array {
+		$list = array();
+
+		foreach ( (array) $roles as $index => $role ) {
+			$list[ $index ] = is_scalar( $role ) ? (string) $role : '';
+		}
+
+		return $list;
+	}
+
+	/**
 	 * Save a product's rules and report what is stored afterwards.
 	 *
 	 * Getting this wrong in one direction is a security bug: a save that fails

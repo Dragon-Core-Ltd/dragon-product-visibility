@@ -76,6 +76,9 @@ class Product_Metabox {
 	 *
 	 * Email addresses are shown only to users the customer search would serve
 	 * (manage_woocommerce or list_users); anyone else gets null and sees a count.
+	 * On multisite, accounts that do not belong to this site are left out, as
+	 * the customer search leaves them out; other_site_customers() lists them so
+	 * the form can keep them.
 	 *
 	 * @param int[] $customer_ids Customer user IDs.
 	 * @return array<int, string>|null
@@ -87,6 +90,10 @@ class Product_Metabox {
 
 		$labels = array();
 		foreach ( $customer_ids as $customer_id ) {
+			if ( is_multisite() && ! is_user_member_of_blog( (int) $customer_id ) ) {
+				continue;
+			}
+
 			$user = get_userdata( (int) $customer_id );
 			if ( $user ) {
 				$labels[ (int) $customer_id ] = $user->display_name . ' (' . $user->user_email . ')';
@@ -94,6 +101,29 @@ class Product_Metabox {
 		}
 
 		return $labels;
+	}
+
+	/**
+	 * The customers on a product's list that belong to another site of the
+	 * network. The picker does not show them, so they travel with the form
+	 * unchanged and saving the product keeps them.
+	 *
+	 * @param int[] $customer_ids Customer user IDs.
+	 * @return int[]
+	 */
+	public static function other_site_customers( array $customer_ids ): array {
+		if ( ! is_multisite() ) {
+			return array();
+		}
+
+		$other = array();
+		foreach ( $customer_ids as $customer_id ) {
+			if ( ! is_user_member_of_blog( (int) $customer_id ) ) {
+				$other[] = (int) $customer_id;
+			}
+		}
+
+		return $other;
 	}
 
 	/**
@@ -203,6 +233,9 @@ class Product_Metabox {
 									</option>
 								<?php endforeach; ?>
 							</select>
+							<?php foreach ( self::other_site_customers( $customer_ids ) as $customer_id ) : ?>
+								<input type="hidden" name="dragonproductvisibility_customers[]" value="<?php echo esc_attr( $customer_id ); ?>" />
+							<?php endforeach; ?>
 						<?php else : ?>
 							<?php
 							// The saved list travels with the form unchanged, so saving the
@@ -362,8 +395,8 @@ class Product_Metabox {
 		}
 
 		$restriction_mode = isset( $_POST['dragonproductvisibility_restriction_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['dragonproductvisibility_restriction_mode'] ) ) : 'none';
-		$roles            = isset( $_POST['dragonproductvisibility_roles'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['dragonproductvisibility_roles'] ) ) : array();
-		$customers        = isset( $_POST['dragonproductvisibility_customers'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['dragonproductvisibility_customers'] ) ) : array();
+		$roles            = isset( $_POST['dragonproductvisibility_roles'] ) ? Customer_Visibility::role_list( map_deep( wp_unslash( $_POST['dragonproductvisibility_roles'] ), 'sanitize_text_field' ) ) : array();
+		$customers        = isset( $_POST['dragonproductvisibility_customers'] ) ? wp_parse_id_list( map_deep( wp_unslash( $_POST['dragonproductvisibility_customers'] ), 'absint' ) ) : array();
 
 		self::$saved_this_request[ $post_id ] = true;
 

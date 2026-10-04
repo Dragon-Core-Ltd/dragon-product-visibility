@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 8.0
 WC requires at least: 7.0
 WC tested up to: 10.4
-Stable tag: 1.0.13
+Stable tag: 1.0.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,7 +69,7 @@ Yes, you can select specific WordPress roles that should have access to the prod
 
 = What happens if I restrict a product that's already in someone's cart? =
 
-The product will be automatically removed from their cart when they visit the cart or checkout page, with a notice explaining why.
+The product will be automatically removed from their cart when they visit the cart or checkout page, with a notice explaining why. A WooCommerce checkout link (`/checkout-link/?products=...`) that names a product the visitor may not see is refused as a whole, and nothing is added to the cart.
 
 = Do admins and shop managers see restricted products? =
 
@@ -92,13 +92,27 @@ The plugin filters WooCommerce's standard product queries, the core product site
 
 = Who can search for customers when setting up a product? =
 
-The customer search on the product screen returns account names and email addresses, so it needs the `manage_woocommerce` capability (shop managers and administrators) or the `list_users` capability, as well as permission to edit products.
+The customer search on the product screen returns account names and email addresses, so it needs the `manage_woocommerce` capability (shop managers and administrators) or the `list_users` capability, as well as permission to edit products. On multisite it only lists accounts that belong to the current site.
+
+= Do category counts include hidden products? =
+
+Yes. Category and tag counts, and category listings such as the shop's category grid or a categories widget, still count hidden products, so a category whose products are all hidden from a visitor is still listed to them.
 
 = Is this compatible with HPOS (High-Performance Order Storage)? =
 
 Yes, the plugin declares HPOS compatibility.
 
 == Changelog ==
+
+= 1.0.14 =
+* Security: a hidden product's name, stock or address is no longer given away by the Store API cart (adding it by ID now gets a plain "no access" error), by WooCommerce checkout links, by the add-to-cart error redirect, by address redirects such as ?p=, ?attachment_id= or a mistyped product URL, or by the site comments feed. Reviews of a hidden product are refused, through the review form and through the REST API.
+* Fixed: on sites with a persistent object cache, WooCommerce's product and review widgets and the older product grid blocks could show one visitor's product list to another. Visitors with hidden products now get their own list. Widget and product grid output cached before this update clears at the next product save or WooCommerce cache reset.
+* Performance: products hidden by a category or tag rule no longer have all their data loaded on every page, which on a large hidden category could exhaust memory.
+* Fixed: a grouped product form posted with a non-numeric item no longer causes a fatal error.
+* On multisite, the customer search and the saved customer list on the product screen only show accounts that belong to the current site. Customers from other sites already on a product's list are kept when the product is saved.
+* Fixed: a category or tag rule can now target a role whose id has capital letters, spaces or dots. The Visibility Rules screen used to answer "Please select at least one role", and where two roles differed only by capitals the rule was stored against the wrong one.
+* A malformed customer list sent to the product save is ignored instead of being read as a customer.
+* Housekeeping: request values are read with WordPress's own sanitizers. Rules already saved are unchanged.
 
 = 1.0.13 =
 * Fixed: uninstall deletes data only when the opt-in is clearly on (1, true, yes or on), not for a value set to "false" or "no".
@@ -138,7 +152,7 @@ Yes, the plugin declares HPOS compatibility.
 * Polish: the WooCommerce-required notice now only appears on the Plugins screen.
 
 = 1.0.3 =
-* Data safety: uninstalling the plugin no longer deletes its data unless you explicitly opt in first — a reinstall now picks up exactly where you left off.
+* Data safety: uninstalling the plugin no longer deletes its data unless you explicitly opt in first, so a reinstall now picks up exactly where you left off.
 
 = 1.0.2 =
 * Fix: the admin customer-search script was not updated to the new prefix, breaking the visibility selector; settings also carry safely on reactivate.
@@ -157,6 +171,9 @@ Yes, the plugin declares HPOS compatibility.
 * WooCommerce blocks support
 
 == Upgrade Notice ==
+
+= 1.0.14 =
+Hidden products are no longer named in cart errors, checkout links, feeds or redirects, and category and tag rules can target every role. Widget and product grid caches from before the update clear at the next product save or WooCommerce cache reset.
 
 = 1.0.13 =
 Uninstall deletes data only when the opt-in is clearly on.

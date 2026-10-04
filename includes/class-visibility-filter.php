@@ -115,7 +115,7 @@ class Visibility_Filter {
 		// Filter search results
 		add_filter( 'posts_where', array( $this, 'filter_search_where' ), 10, 2 );
 
-		// Filter product listings that bypass woocommerce_product_query — the WC
+		// Filter product listings that bypass woocommerce_product_query: the WC
 		// Store API (/wp-json/wc/store/v1/products) and the core product sitemap
 		// both run their own WP_Query, so hook pre_get_posts for product queries.
 		add_action( 'pre_get_posts', array( $this, 'filter_product_pre_get_posts' ) );
@@ -123,7 +123,8 @@ class Visibility_Filter {
 		// Block direct REST fetches of a single restricted product (Store API
 		// products/{id} and products/{slug} under wc/store and wc/store/v1, and
 		// core wp/v2/product/{id}), which resolve the product directly and never
-		// run a filtered query. Batch sub-requests pass through here too.
+		// run a filtered query, and Store API cart and shopper-list writes, whose
+		// own validation names the product. Batch sub-requests pass through here too.
 		add_filter( 'rest_request_before_callbacks', array( $this, 'filter_rest_single_product' ), 10, 3 );
 
 		// The [products] shortcode family caches its result IDs per query args
@@ -158,6 +159,28 @@ class Visibility_Filter {
 
 		// Add to cart validation
 		add_filter( 'woocommerce_add_to_cart_validation', array( $this, 'validate_add_to_cart' ), 10, 4 );
+
+		// A canonical redirect (?p=, ?attachment_id=, the 404 slug guess) would
+		// send the visitor to the address of a product they may not see.
+		add_filter( 'redirect_canonical', array( $this, 'filter_redirect_canonical' ), 10, 2 );
+
+		// WooCommerce's /checkout-link/?products= handler (template_redirect,
+		// priority 10) adds each product through the Store API cart controller,
+		// whose errors name the product, and passes them on in the URL.
+		add_action( 'template_redirect', array( $this, 'refuse_restricted_checkout_link' ), 5 );
+
+		// ?wc-ajax=add_to_cart answers a refused add with the product's address.
+		add_filter( 'woocommerce_cart_redirect_after_error', array( $this, 'filter_cart_redirect_after_error' ), 10, 2 );
+
+		// A comment posted to a restricted product, and the site comments feed,
+		// which reads comments with its own query rather than WP_Comment_Query.
+		add_action( 'pre_comment_on_post', array( $this, 'refuse_comment_on_restricted_product' ) );
+		add_filter( 'comment_feed_where', array( $this, 'filter_comment_feed_where' ) );
+
+		// WooCommerce's widgets and legacy product grid blocks cache their output
+		// for every visitor alike; a visitor with hidden products bypasses them.
+		add_filter( 'dynamic_sidebar_params', array( $this, 'filter_dynamic_sidebar_params' ) );
+		add_filter( 'woocommerce_blocks_product_grid_is_cacheable', array( $this, 'filter_product_grid_is_cacheable' ) );
 
 		// Validate cart items on cart/checkout pages
 		add_action( 'woocommerce_check_cart_items', array( $this, 'validate_cart_items' ) );
@@ -832,14 +855,19 @@ class Visibility_Filter {
 
 		$handler = is_array( $handler ) ? $handler : array();
 
-		$product_id = $this->rest_requested_product_id( $handler, $request );
+		$product_ids = array_merge(
+			array( $this->rest_requested_product_id( $handler, $request ) ),
+			$this->rest_written_product_ids( $handler, $request )
+		);
 
-		if ( $product_id > 0 && ! $this->user_can_view_product( $product_id ) ) {
-			return new \WP_Error(
-				'woocommerce_rest_product_invalid_id',
-				__( 'Sorry, you do not have access to view this product.', 'dragon-product-visibility' ),
-				array( 'status' => 404 )
-			);
+		foreach ( $product_ids as $product_id ) {
+			if ( $product_id > 0 && ! $this->user_can_view_product( $product_id ) ) {
+				return new \WP_Error(
+					'woocommerce_rest_product_invalid_id',
+					__( 'Sorry, you do not have access to view this product.', 'dragon-product-visibility' ),
+					array( 'status' => 404 )
+				);
+			}
 		}
 
 		$media_id = $this->rest_requested_media_id( $handler, $request );
@@ -1003,6 +1031,62 @@ class Visibility_Filter {
 	}
 
 	/**
+	 * The products a REST write would add or comment on: Store API
+	 * cart/add-item and cart/items (the "id" field) and
+	 * shopper-lists/{slug}/items ("product_id" and "variation_id"), and a new
+	 * comment on a product (core comments, "post"). WooCommerce validates the
+	 * cart adds with messages that carry the product's name, stock and
+	 * attributes, before the add-to-cart filter runs, so they are judged here
+	 * first.
+	 *
+	 * @param array            $handler Matched route handler.
+	 * @param \WP_REST_Request $request Current request.
+	 * @return int[] Empty when the request is not one of those writes.
+	 */
+	private function rest_written_product_ids( array $handler, \WP_REST_Request $request ): array {
+		if ( self::rest_is_read( $request ) ) {
+			return array();
+		}
+
+		$controller = self::rest_controller( $handler );
+		$base       = $controller ? substr( (string) strrchr( '\\' . get_class( $controller ), '\\' ), 1 ) : '';
+		$route      = (string) $request->get_route();
+
+		if ( in_array( $base, array( 'CartAddItem', 'CartItems' ), true ) || preg_match( '#^/wc/store(?:/v\d+)?/cart/(?:add-item|items)/?$#i', $route ) ) {
+			return array( self::rest_id_param( $request, 'id' ) );
+		}
+
+		if ( 'ShopperListItems' === $base || preg_match( '#^/wc/store(?:/v\d+)?/shopper-lists/[a-z0-9-]+/items/?$#i', $route ) ) {
+			return array( self::rest_id_param( $request, 'product_id' ), self::rest_id_param( $request, 'variation_id' ) );
+		}
+
+		// Core's comment creation (POST /wp/v2/comments) does not pass through
+		// pre_comment_on_post, and its reply links to the product.
+		if ( 'POST' === strtoupper( (string) $request->get_method() )
+			&& ( $controller instanceof \WP_REST_Comments_Controller || preg_match( '#^/wp/v2/comments/?$#i', $route ) ) ) {
+			$post_id = self::rest_id_param( $request, 'post' );
+			$post    = $post_id ? get_post( $post_id ) : null;
+
+			return ( $post && in_array( $post->post_type, array( 'product', 'product_variation' ), true ) ) ? array( $post_id ) : array();
+		}
+
+		return array();
+	}
+
+	/**
+	 * An ID parameter of a REST request; 0 when it is missing or not a scalar.
+	 *
+	 * @param \WP_REST_Request $request Current request.
+	 * @param string           $key     Parameter name.
+	 * @return int
+	 */
+	private static function rest_id_param( \WP_REST_Request $request, string $key ): int {
+		$value = $request->get_param( $key );
+
+		return is_scalar( $value ) ? absint( $value ) : 0;
+	}
+
+	/**
 	 * The ID the Store API products/{slug} route would serve for a slug.
 	 *
 	 * Mirrors that route: a product slug first, then a variation slug. A
@@ -1057,17 +1141,24 @@ class Visibility_Filter {
 	 * both are checked so a caller that passes a variation either way is still
 	 * refused.
 	 *
-	 * @param bool $passed       Whether validation passed.
-	 * @param int  $product_id   Product ID.
-	 * @param int  $quantity     Quantity.
-	 * @param int  $variation_id Variation ID (0 for a simple product).
+	 * The grouped add-to-cart form passes each quantity[] key as the product
+	 * ID, so the ID can be any string; one that is not a product ID is left to
+	 * WooCommerce.
+	 *
+	 * @param mixed $passed       Whether validation passed.
+	 * @param mixed $product_id   Product ID.
+	 * @param mixed $quantity     Quantity.
+	 * @param mixed $variation_id Variation ID (0 for a simple product).
+	 * @return mixed
 	 */
-	public function validate_add_to_cart( bool $passed, int $product_id, int $quantity, $variation_id = 0 ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Signature of the woocommerce_add_to_cart_validation filter.
-		if ( ! $passed ) {
+	public function validate_add_to_cart( $passed, $product_id, $quantity, $variation_id = 0 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Signature of the woocommerce_add_to_cart_validation filter.
+		$product_id = is_scalar( $product_id ) ? absint( $product_id ) : 0;
+
+		if ( ! $passed || 0 === $product_id ) {
 			return $passed;
 		}
 
-		$variation_id = absint( $variation_id );
+		$variation_id = is_scalar( $variation_id ) ? absint( $variation_id ) : 0;
 
 		if ( ! $this->user_can_view_product( $product_id ) || ( $variation_id > 0 && ! $this->user_can_view_product( $variation_id ) ) ) {
 			if ( function_exists( 'wc_add_notice' ) ) {
@@ -1080,6 +1171,211 @@ class Visibility_Filter {
 		}
 
 		return $passed;
+	}
+
+	/**
+	 * Cancel a canonical redirect whose target is a product, variation or
+	 * product image the current user may not see.
+	 *
+	 * Core redirects ?p=, ?page_id= and ?attachment_id= to the post's permalink
+	 * and guesses a 404's target by slug prefix, which would hand out the
+	 * address (and so the slug) of a restricted product.
+	 *
+	 * @param mixed  $redirect_url  Where core would redirect, or false.
+	 * @param string $requested_url The requested URL.
+	 * @return mixed False to cancel the redirect.
+	 */
+	public function filter_redirect_canonical( $redirect_url, $requested_url = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Signature of the redirect_canonical filter (2 args).
+		// Nothing is hidden from this visitor, so there is nothing to cancel.
+		if ( ! is_string( $redirect_url ) || '' === $redirect_url || empty( $this->get_restricted_product_ids() ) ) {
+			return $redirect_url;
+		}
+
+		$ids = array(
+			absint( get_query_var( 'p' ) ),
+			absint( get_query_var( 'page_id' ) ),
+			absint( get_query_var( 'attachment_id' ) ),
+		);
+
+		// url_to_postid() runs a product query, which this class would otherwise
+		// strip the restricted product out of.
+		$this->resolving = true;
+		try {
+			$ids[] = absint( url_to_postid( $redirect_url ) );
+		} finally {
+			$this->resolving = false;
+		}
+
+		foreach ( array_unique( array_filter( $ids ) ) as $post_id ) {
+			if ( $this->post_is_restricted( (int) $post_id ) ) {
+				return false;
+			}
+		}
+
+		return $redirect_url;
+	}
+
+	/**
+	 * Whether a post is a product, variation or product image the current user
+	 * may not see.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	private function post_is_restricted( int $post_id ): bool {
+		$post = $post_id ? get_post( $post_id ) : null;
+		if ( ! $post ) {
+			return false;
+		}
+
+		if ( in_array( $post->post_type, array( 'product', 'product_variation' ), true ) ) {
+			return ! $this->user_can_view_product( $post_id );
+		}
+
+		return 'attachment' === $post->post_type && $this->attachment_is_restricted( $post_id );
+	}
+
+	/**
+	 * Refuse a WooCommerce checkout link (/checkout-link/?products=) that names
+	 * a product the user may not see, before WooCommerce empties the cart and
+	 * tries to add it. WooCommerce would pass the add's error, which names the
+	 * product, back in the wc_error query string.
+	 */
+	public function refuse_restricted_checkout_link(): void {
+		if ( ! get_query_var( 'checkout-link' ) || ! isset( $_GET['products'] ) || ! is_string( $_GET['products'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WooCommerce's checkout link is a plain shareable URL with no nonce; this only refuses it.
+			return;
+		}
+
+		$products = sanitize_text_field( wp_unslash( $_GET['products'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- As above.
+
+		foreach ( self::checkout_link_product_ids( $products ) as $product_id ) {
+			if ( ! $this->user_can_view_product( $product_id ) ) {
+				wp_safe_redirect(
+					add_query_arg(
+						'wc_error',
+						rawurlencode( __( 'Sorry, you cannot purchase this product.', 'dragon-product-visibility' ) ),
+						wc_get_cart_url()
+					)
+				);
+				exit;
+			}
+		}
+	}
+
+	/**
+	 * The product IDs a checkout link's products list asks WooCommerce to add,
+	 * read the way WooCommerce reads it: comma-separated "id" or "id:quantity"
+	 * entries, skipping any whose ID or quantity is not a positive number.
+	 *
+	 * @param string $products Sanitized products list.
+	 * @return int[]
+	 */
+	public static function checkout_link_product_ids( string $products ): array {
+		$ids = array();
+
+		foreach ( array_filter( explode( ',', $products ) ) as $entry ) {
+			$parts      = explode( ':', $entry );
+			$product_id = absint( $parts[0] );
+			$quantity   = isset( $parts[1] ) ? absint( $parts[1] ) : 1;
+
+			if ( $product_id && $quantity ) {
+				$ids[] = $product_id;
+			}
+		}
+
+		return $ids;
+	}
+
+	/**
+	 * Send a refused ?wc-ajax=add_to_cart to the shop instead of the product.
+	 *
+	 * @param mixed $url        Where WooCommerce would send the visitor.
+	 * @param mixed $product_id Product ID.
+	 * @return mixed
+	 */
+	public function filter_cart_redirect_after_error( $url, $product_id = 0 ) {
+		$product_id = is_scalar( $product_id ) ? absint( $product_id ) : 0;
+
+		if ( $product_id > 0 && ! $this->user_can_view_product( $product_id ) && function_exists( 'wc_get_page_permalink' ) ) {
+			return wc_get_page_permalink( 'shop' );
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Refuse a comment or review posted to a product the user may not see.
+	 *
+	 * @param mixed $comment_post_id Post being commented on.
+	 */
+	public function refuse_comment_on_restricted_product( $comment_post_id ): void {
+		$post_id = is_scalar( $comment_post_id ) ? absint( $comment_post_id ) : 0;
+		$post    = $post_id ? get_post( $post_id ) : null;
+
+		if ( $post && in_array( $post->post_type, array( 'product', 'product_variation' ), true ) && ! $this->user_can_view_product( $post_id ) ) {
+			wp_die(
+				esc_html__( 'Sorry, you do not have access to view this product.', 'dragon-product-visibility' ),
+				'',
+				array( 'response' => 403 )
+			);
+		}
+	}
+
+	/**
+	 * Leave reviews of restricted products out of the site comments feed.
+	 *
+	 * @param mixed $where WHERE clause of the comments feed query.
+	 * @return mixed
+	 */
+	public function filter_comment_feed_where( $where ) {
+		if ( self::in_admin_screen() || $this->resolving || ! is_string( $where ) ) {
+			return $where;
+		}
+
+		$restricted_ids = $this->get_restricted_product_ids();
+		if ( empty( $restricted_ids ) ) {
+			return $where;
+		}
+
+		global $wpdb;
+
+		return $where . " AND {$wpdb->comments}.comment_post_ID NOT IN (" . implode( ',', array_map( 'intval', $restricted_ids ) ) . ')';
+	}
+
+	/**
+	 * Keep a WooCommerce widget out of its shared output cache for a visitor
+	 * with hidden products. WC_Widget reads and writes that cache only when the
+	 * widget has an ID.
+	 *
+	 * @param mixed $params Widget display parameters.
+	 * @return mixed
+	 */
+	public function filter_dynamic_sidebar_params( $params ) {
+		if ( ! is_array( $params ) || ! isset( $params[0] ) || ! is_array( $params[0] ) || empty( $params[0]['widget_id'] ) ) {
+			return $params;
+		}
+
+		global $wp_registered_widgets;
+
+		$callback = $wp_registered_widgets[ $params[0]['widget_id'] ]['callback'] ?? null;
+		$widget   = ( is_array( $callback ) && isset( $callback[0] ) ) ? $callback[0] : null;
+
+		if ( $widget instanceof \WC_Widget && ! empty( $this->get_restricted_product_ids() ) ) {
+			$params[0]['widget_id'] = '';
+		}
+
+		return $params;
+	}
+
+	/**
+	 * Keep the legacy product grid blocks out of their shared result cache for
+	 * a visitor with hidden products.
+	 *
+	 * @param mixed $is_cacheable Whether the grid's results may be cached.
+	 * @return mixed
+	 */
+	public function filter_product_grid_is_cacheable( $is_cacheable ) {
+		return empty( $this->get_restricted_product_ids() ) ? $is_cacheable : false;
 	}
 
 	/**
@@ -1192,7 +1488,7 @@ class Visibility_Filter {
 	 * Whether the current user may see a product under the bulk category/tag rules.
 	 *
 	 * The product is hidden if it falls under any bulk rule (its own term or, for
-	 * categories, a descendant of the rule's term) that denies the user's roles —
+	 * categories, a descendant of the rule's term) that denies the user's roles,
 	 * most-restrictive wins. Only called for products with no per-product rule.
 	 *
 	 * @param int $product_id Product ID.
@@ -1219,7 +1515,7 @@ class Visibility_Filter {
 	}
 
 	/**
-	 * Whether a product belongs to a bulk rule's term — directly, or (for the
+	 * Whether a product belongs to a bulk rule's term: directly, or (for the
 	 * hierarchical product_cat taxonomy) as a descendant of it, so a parent-
 	 * category rule also covers products in its child categories.
 	 *
@@ -1403,38 +1699,36 @@ class Visibility_Filter {
              AND meta_value IN ('whitelist', 'blacklist')"
 		);
 
-		// Products the current user is denied by a bulk category/tag rule. Unioning
-		// these into the candidate set (rather than only the per-product ones) is
-		// what keeps a category rule enforced on the listing/search/sitemap paths.
-		$candidates = array_unique(
-			array_merge(
-				array_map( 'intval', (array) $products_with_restrictions ),
-				$this->get_bulk_denied_product_ids()
-			)
-		);
+		$per_product = array_values( array_unique( array_map( 'intval', (array) $products_with_restrictions ) ) );
 
-		if ( empty( $candidates ) ) {
-			$this->restricted_products_cache = array();
-			return $this->restricted_products_cache;
+		// Products the current user is denied by a bulk category/tag rule. Adding
+		// these to the set (rather than only the per-product ones) is what keeps a
+		// category rule enforced on the listing/search/sitemap paths.
+		$bulk_denied = $this->get_bulk_denied_product_ids();
+
+		if ( ! empty( $per_product ) ) {
+			// Prime the meta and term caches for the products with their own rule
+			// in one query each, so the loop below hits the cache.
+			update_meta_cache( 'post', $per_product );
+			update_object_term_cache( $per_product, 'product' );
 		}
 
-		// Prime the meta cache (per-product restriction-mode / visible-roles) AND
-		// the object-term cache (bulk rules call get_the_terms() per candidate) for
-		// the whole set in one query each, so the loop below hits the cache instead
-		// of issuing a query per product.
-		update_meta_cache( 'post', $candidates );
-		update_object_term_cache( $candidates, 'product' );
-
-		// Make the final per-product decision. This re-check is what lets an
-		// explicit per-product allow override a hiding category rule: a product in a
-		// denied category but individually whitelisted for the user resolves visible.
-		// Every candidate is a product (rules and bulk terms sit on products), so
-		// the variation-to-parent lookup is skipped rather than costing a post
-		// read per candidate.
-		foreach ( $candidates as $product_id ) {
-			if ( ! $this->product_visible( (int) $product_id ) ) {
-				$restricted_ids[] = (int) $product_id;
+		// A product with its own rule gets the full decision. This re-check is
+		// what lets an explicit per-product allow override a hiding category rule:
+		// a product in a denied category but individually whitelisted for the user
+		// resolves visible. Every candidate is a product (rules and bulk terms sit
+		// on products), so the variation-to-parent lookup is skipped.
+		foreach ( $per_product as $product_id ) {
+			if ( ! $this->product_visible( $product_id ) ) {
+				$restricted_ids[] = $product_id;
 			}
+		}
+
+		// Any other product a bulk rule denies is decided by that rule alone, so
+		// its meta is never loaded: on a large hidden category that would load
+		// every product's meta on every request.
+		foreach ( array_diff( $bulk_denied, $per_product ) as $product_id ) {
+			$restricted_ids[] = (int) $product_id;
 		}
 
 		$this->restricted_products_cache = $restricted_ids;
@@ -1484,22 +1778,22 @@ class Visibility_Filter {
 		}
 
 		// try/finally so a throw inside the internal query (e.g. a third-party
-		// filter) can never leave $resolving stuck true — which would make every
+		// filter) can never leave $resolving stuck true, which would make every
 		// later get_restricted_product_ids() call in this request return empty and
 		// stop filtering restricted products.
 		$this->resolving = true;
 		try {
 			$ids = get_posts(
 				array(
-					'post_type'        => 'product',
-					'post_status'      => 'publish',
-					'fields'           => 'ids',
-					'posts_per_page'   => -1,
-					'no_found_rows'    => true,
+					'post_type'      => 'product',
+					'post_status'    => 'publish',
+					'fields'         => 'ids',
+					'posts_per_page' => -1,
+					'no_found_rows'  => true,
 					// get_posts() suppresses query filters by default, so this
 					// plugin's own filters do not run on the internal query.
 					// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Enforcing category/tag visibility inherently requires a taxonomy query; result is cached per request.
-					'tax_query'        => $tax_query,
+					'tax_query'      => $tax_query,
 				)
 			);
 		} finally {

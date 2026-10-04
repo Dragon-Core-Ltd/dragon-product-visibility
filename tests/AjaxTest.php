@@ -155,7 +155,7 @@ final class AjaxTest extends TestCase {
 		$sent = $this->run_search();
 
 		$this->assertFalse( $sent->success, 'every customer email must not be readable with only edit_products' );
-		$this->assertSame( 0, $this->wpdb->get_results_calls );
+		$this->assertSame( 0, count( $GLOBALS['dpv_test_user_queries'] ) );
 	}
 
 	public function test_customer_search_allows_a_user_who_can_list_users(): void {

@@ -81,8 +81,21 @@ function dpv_test_reset(): \DragonProductVisibility\Tests\Fake_Wpdb {
 	$GLOBALS['shortcode_tags']             = array();
 	$GLOBALS['post']                       = null;
 	$GLOBALS['wp_query']                   = null;
+	$GLOBALS['dpv_test_terms']             = array();
+	$GLOBALS['dpv_test_term_products']     = array();
+	$GLOBALS['dpv_test_term_parents']      = array();
+	$GLOBALS['dpv_test_meta_primed']       = array();
+	$GLOBALS['dpv_test_query_vars']        = array();
+	$GLOBALS['dpv_test_url_posts']         = array();
+	$GLOBALS['dpv_test_url_lookups']       = 0;
+	$GLOBALS['dpv_test_pre_get_posts']     = null;
+	$GLOBALS['dpv_test_users']             = array();
+	$GLOBALS['dpv_test_user_queries']      = array();
+	$GLOBALS['dpv_test_multisite']         = false;
+	$GLOBALS['wp_registered_widgets']      = array();
 	$_POST                                 = array();
 	$_GET                                  = array();
+	$_REQUEST                              = array();
 	return $GLOBALS['wpdb'];
 }
 
@@ -123,6 +136,36 @@ function esc_html( $text ) {
 	return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8', false );
 }
 
+function esc_attr( $text ) {
+	// Core shares esc_html()'s rules for attribute values.
+	return esc_html( $text );
+}
+
+/**
+ * Mirrors core's selected(): compares as strings and prints the attribute.
+ */
+function selected( $selected, $current = true, $display = true ) {
+	$result = ( (string) $selected === (string) $current ) ? " selected='selected'" : '';
+	if ( $display ) {
+		echo $result; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+	return $result;
+}
+
+/**
+ * Mirrors core's wp_nonce_field(): the nonce input plus the referer input.
+ */
+function wp_nonce_field( $action = -1, $name = '_wpnonce', $referer = true, $display = true ) {
+	$field = '<input type="hidden" id="' . esc_attr( $name ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( dpv_test_nonce( $action ) ) . '" />';
+	if ( $referer ) {
+		$field .= '<input type="hidden" name="_wp_http_referer" value="/wp-admin/post.php" />';
+	}
+	if ( $display ) {
+		echo $field; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+	return $field;
+}
+
 function absint( $maybeint ) {
 	return abs( (int) $maybeint );
 }
@@ -135,6 +178,10 @@ function sanitize_text_field( $str ) {
 	 * are REMOVED entirely. That last rule surprises people and matters for a
 	 * fleet that handles URLs, so a stub that only folds whitespace hides it.
 	 */
+	if ( is_object( $str ) || is_array( $str ) ) {
+		return '';
+	}
+
 	$filtered = (string) $str;
 
 	if ( '' !== $filtered && 1 !== preg_match( '//u', $filtered ) ) {
@@ -163,6 +210,11 @@ function sanitize_text_field( $str ) {
 }
 
 function sanitize_key( $key ) {
+	// Core answers an empty string for anything that is not a scalar.
+	if ( ! is_scalar( $key ) ) {
+		return '';
+	}
+
 	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
 }
 
@@ -217,18 +269,49 @@ function wp_get_current_user() {
 	);
 }
 
+/*
+ * Product terms live in one map, dpv_test_term_products[ taxonomy ][ term_id ]
+ * = product IDs, with category parents in dpv_test_term_parents[ taxonomy ][
+ * term_id ] = parent term ID. get_the_terms(), get_ancestors() and the
+ * tax_query of get_posts() all read it, so they agree the way core's do.
+ */
+
+/**
+ * Mirrors core: the product's terms in a taxonomy, false when it has none.
+ */
 function get_the_terms( $post, $taxonomy ) {
-	unset( $post, $taxonomy );
-	return false;
+	$terms = array();
+	foreach ( (array) ( $GLOBALS['dpv_test_term_products'][ $taxonomy ] ?? array() ) as $term_id => $products ) {
+		if ( in_array( (int) $post, array_map( 'intval', (array) $products ), true ) ) {
+			$terms[] = (object) array(
+				'term_id'  => (int) $term_id,
+				'taxonomy' => $taxonomy,
+			);
+		}
+	}
+	return $terms ? $terms : false;
 }
 
+/**
+ * Mirrors core for a hierarchical taxonomy: the parent, its parent, and so on.
+ */
 function get_ancestors( $object_id = 0, $object_type = '', $resource_type = '' ) {
-	unset( $object_id, $object_type, $resource_type );
-	return array();
+	unset( $resource_type );
+	$ancestors = array();
+	$parents   = (array) ( $GLOBALS['dpv_test_term_parents'][ $object_type ] ?? array() );
+	$current   = (int) $object_id;
+	while ( ! empty( $parents[ $current ] ) && ! in_array( (int) $parents[ $current ], $ancestors, true ) ) {
+		$current     = (int) $parents[ $current ];
+		$ancestors[] = $current;
+	}
+	return $ancestors;
 }
 
+/**
+ * Records which objects had their meta loaded.
+ */
 function update_meta_cache( $meta_type, $object_ids ) {
-	unset( $meta_type, $object_ids );
+	$GLOBALS['dpv_test_meta_primed'][] = array( $meta_type, array_values( array_map( 'intval', (array) $object_ids ) ) );
 	return array();
 }
 
@@ -237,9 +320,96 @@ function update_object_term_cache( $object_ids, $object_type ) {
 	return null;
 }
 
+/**
+ * Mirrors core for what the plugin asks: product IDs matching an OR'd
+ * tax_query of term_id clauses, include_children covering descendants.
+ */
 function get_posts( $args = null ) {
-	unset( $args );
-	return array();
+	$args = (array) $args;
+	if ( empty( $args['tax_query'] ) ) {
+		return array();
+	}
+
+	$ids = array();
+	foreach ( $args['tax_query'] as $key => $clause ) {
+		if ( 'relation' === $key || ! is_array( $clause ) ) {
+			continue;
+		}
+		$taxonomy = $clause['taxonomy'];
+		$wanted   = array( (int) $clause['terms'] );
+		if ( ! empty( $clause['include_children'] ) ) {
+			foreach ( array_keys( (array) ( $GLOBALS['dpv_test_term_products'][ $taxonomy ] ?? array() ) ) as $term_id ) {
+				if ( in_array( (int) $clause['terms'], get_ancestors( (int) $term_id, $taxonomy ), true ) ) {
+					$wanted[] = (int) $term_id;
+				}
+			}
+		}
+		foreach ( $wanted as $term_id ) {
+			foreach ( (array) ( $GLOBALS['dpv_test_term_products'][ $taxonomy ][ $term_id ] ?? array() ) as $product_id ) {
+				$ids[] = (int) $product_id;
+			}
+		}
+	}
+	return array_values( array_unique( $ids ) );
+}
+
+/**
+ * Mirrors core: a query variable of the main query.
+ */
+function get_query_var( $query_var, $default_value = '' ) {
+	return $GLOBALS['dpv_test_query_vars'][ $query_var ] ?? $default_value;
+}
+
+/**
+ * Mirrors core: the post ID a URL resolves to, found by a WP_Query, so the
+ * query passes through pre_get_posts (dpv_test_pre_get_posts stands for the
+ * callbacks hooked there). 0 when the query would not return the post.
+ */
+function url_to_postid( $url ) {
+	++$GLOBALS['dpv_test_url_lookups'];
+	$post_id = (int) ( $GLOBALS['dpv_test_url_posts'][ (string) $url ] ?? 0 );
+	$post    = $post_id ? get_post( $post_id ) : null;
+	if ( ! $post ) {
+		return 0;
+	}
+
+	$query = new WP_Query(
+		array(
+			'post_type' => $post->post_type,
+			'name'      => $post->post_name ?? '',
+		)
+	);
+	if ( is_callable( $GLOBALS['dpv_test_pre_get_posts'] ) ) {
+		call_user_func( $GLOBALS['dpv_test_pre_get_posts'], $query );
+	}
+
+	$excluded = array_map( 'intval', (array) $query->get( 'post__not_in' ) );
+	$included = array_map( 'intval', (array) $query->get( 'post__in' ) );
+	if ( in_array( $post_id, $excluded, true ) || ( $included && ! in_array( $post_id, $included, true ) ) ) {
+		return 0;
+	}
+
+	return $post_id;
+}
+
+function is_multisite() {
+	return (bool) $GLOBALS['dpv_test_multisite'];
+}
+
+function get_current_blog_id() {
+	return 1;
+}
+
+/**
+ * Mirrors core: whether the user belongs to the site (always true on a
+ * single site). dpv_test_users[ id ]['blogs'] lists a user's sites.
+ */
+function is_user_member_of_blog( $user_id = 0, $blog_id = 0 ) {
+	if ( ! is_multisite() ) {
+		return true;
+	}
+	$blog_id = $blog_id ? (int) $blog_id : get_current_blog_id();
+	return in_array( $blog_id, (array) ( $GLOBALS['dpv_test_users'][ (int) $user_id ]['blogs'] ?? array( 1 ) ), true );
 }
 
 /**
@@ -295,6 +465,73 @@ function is_wp_error( $thing ) {
 /**
  * WP_Error double.
  */
+/**
+ * WP_User_Query double over dpv_test_users[ id ] = array( user_login,
+ * user_email, display_name, blogs ). Mirrors core for the arguments the
+ * plugin passes: search with * wildcards across search_columns (LIKE, case
+ * insensitive), include, the default blog_id scoping (members of the current
+ * site only on multisite), orderby display_name, number, and fields as a
+ * list of column names. Each construction is recorded.
+ */
+class WP_User_Query {
+	public array $query_vars;
+	private array $results = array();
+
+	public function __construct( $query = null ) {
+		$this->query_vars                   = (array) $query;
+		$GLOBALS['dpv_test_user_queries'][] = $this->query_vars;
+
+		$qv     = $this->query_vars;
+		$search = trim( (string) ( $qv['search'] ?? '' ) );
+		$search = trim( $search, '*' );
+		$rows   = array();
+
+		foreach ( $GLOBALS['dpv_test_users'] as $id => $user ) {
+			if ( isset( $qv['include'] ) && ! in_array( (int) $id, array_map( 'intval', (array) $qv['include'] ), true ) ) {
+				continue;
+			}
+			if ( is_multisite() && ! in_array( (int) ( $qv['blog_id'] ?? get_current_blog_id() ), (array) ( $user['blogs'] ?? array( 1 ) ), true ) ) {
+				continue;
+			}
+			if ( '' !== $search ) {
+				$hit = false;
+				foreach ( (array) ( $qv['search_columns'] ?? array( 'user_login', 'user_email', 'display_name' ) ) as $column ) {
+					if ( false !== stripos( (string) ( $user[ $column ] ?? '' ), $search ) ) {
+						$hit = true;
+					}
+				}
+				if ( ! $hit ) {
+					continue;
+				}
+			}
+			$row = array( 'ID' => (string) $id ) + $user;
+			unset( $row['blogs'] );
+			$rows[] = $row;
+		}
+
+		if ( 'display_name' === ( $qv['orderby'] ?? '' ) ) {
+			usort(
+				$rows,
+				static function ( $a, $b ) {
+					return strcmp( $a['display_name'], $b['display_name'] );
+				}
+			);
+		}
+		if ( isset( $qv['number'] ) && (int) $qv['number'] > 0 ) {
+			$rows = array_slice( $rows, 0, (int) $qv['number'] );
+		}
+
+		foreach ( $rows as $row ) {
+			$fields          = is_array( $qv['fields'] ?? null ) ? $qv['fields'] : array_keys( $row );
+			$this->results[] = (object) array_intersect_key( $row, array_flip( $fields ) );
+		}
+	}
+
+	public function get_results() {
+		return $this->results;
+	}
+}
+
 class WP_Error {
 	public $code;
 	public $message;
@@ -308,15 +545,16 @@ class WP_Error {
 }
 
 /**
- * WP_REST_Request double: a route plus URL and query-string params, read in
- * core's default parameter order (GET before URL).
+ * WP_REST_Request double: a route plus body, URL and query-string params,
+ * read in core's default parameter order (body before GET before URL).
  */
 class WP_REST_Request {
 	private string $route;
 	private string $method;
 	private array $params = array(
-		'GET' => array(),
-		'URL' => array(),
+		'POST' => array(),
+		'GET'  => array(),
+		'URL'  => array(),
 	);
 
 	public function __construct( $method = '', $route = '' ) {
@@ -340,8 +578,12 @@ class WP_REST_Request {
 		$this->params['GET'] = (array) $params;
 	}
 
+	public function set_body_params( $params ) {
+		$this->params['POST'] = (array) $params;
+	}
+
 	public function get_param( $key ) {
-		foreach ( array( 'GET', 'URL' ) as $type ) {
+		foreach ( array( 'POST', 'GET', 'URL' ) as $type ) {
 			if ( isset( $this->params[ $type ][ $key ] ) ) {
 				return $this->params[ $type ][ $key ];
 			}
@@ -432,8 +674,21 @@ class WP_Query {
 	}
 }
 
-function add_query_arg( $key, $value, $url ) {
-	return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . $key . '=' . $value;
+function add_query_arg( ...$args ) {
+	// Core takes ( key, value, url ) or ( array of pairs, url ) and does not encode values.
+	if ( is_array( $args[0] ) ) {
+		$pairs = $args[0];
+		$url   = (string) ( $args[1] ?? '' );
+	} else {
+		$pairs = array( $args[0] => $args[1] );
+		$url   = (string) ( $args[2] ?? '' );
+	}
+
+	foreach ( $pairs as $key => $value ) {
+		$url .= ( str_contains( $url, '?' ) ? '&' : '?' ) . $key . '=' . $value;
+	}
+
+	return $url;
 }
 
 /**
@@ -475,9 +730,21 @@ function maybe_unserialize( $data ) {
 	return $data;
 }
 
+/**
+ * A nonce that verifies for one action only.
+ */
+function dpv_test_nonce( $action ): string {
+	return 'nonce:' . $action;
+}
+
 function wp_verify_nonce( $nonce, $action = -1 ) {
-	unset( $action );
-	return 'valid' === $nonce ? 1 : false;
+	// 'valid' stands for a nonce minted for whichever action is being checked;
+	// dpv_test_nonce() mints one that passes for its own action and no other.
+	if ( ! is_string( $nonce ) ) {
+		return false;
+	}
+
+	return ( 'valid' === $nonce || dpv_test_nonce( $action ) === $nonce ) ? 1 : false;
 }
 
 function current_user_can( $cap, ...$args ) {
@@ -612,6 +879,7 @@ if ( ! getenv( 'DPV_TEST_WITHOUT_WOOCOMMERCE' ) ) {
 	require_once __DIR__ . '/stubs-woocommerce.php';
 	require_once __DIR__ . '/stubs-store-api.php';
 }
+require_once __DIR__ . '/wporg-scan-stubs.php';
 require_once dirname( __DIR__ ) . '/includes/class-install.php';
 require_once dirname( __DIR__ ) . '/includes/class-bulk-rules.php';
 if ( file_exists( dirname( __DIR__ ) . '/includes/class-customer-visibility.php' ) ) {
@@ -621,3 +889,4 @@ require_once dirname( __DIR__ ) . '/includes/class-visibility-filter.php';
 require_once dirname( __DIR__ ) . '/includes/class-ajax.php';
 require_once dirname( __DIR__ ) . '/includes/admin/class-product-metabox.php';
 require_once dirname( __DIR__ ) . '/includes/admin/class-admin.php';
+require_once dirname( __DIR__ ) . '/includes/admin/class-bulk-rules-admin.php';

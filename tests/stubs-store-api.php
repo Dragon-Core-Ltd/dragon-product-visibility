@@ -36,3 +36,30 @@ class ProductReviews {
 		return $request;
 	}
 }
+
+/**
+ * Store API cart/add-item.
+ */
+class CartAddItem {
+	public function get_response( $request ) {
+		return $request;
+	}
+}
+
+/**
+ * Store API cart/items.
+ */
+class CartItems {
+	public function get_response( $request ) {
+		return $request;
+	}
+}
+
+/**
+ * Store API shopper-lists/{slug}/items.
+ */
+class ShopperListItems {
+	public function get_response( $request ) {
+		return $request;
+	}
+}
